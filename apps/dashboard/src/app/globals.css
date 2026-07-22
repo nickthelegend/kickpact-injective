@@ -1,0 +1,115 @@
+/* Kickpact dashboard — same pixel-cabinet tokens as the app. */
+@font-face {
+  font-family: "KickpactPixel";
+  src: url("/fonts/KickpactPixel.ttf") format("truetype");
+  font-display: block;
+}
+@font-face {
+  font-family: "KickpactDisplay";
+  src: url("/fonts/KickpactDisplay.ttf") format("truetype");
+  font-display: block;
+}
+
+:root {
+  --frame: #1b2548;
+  --frame-dark: #151837;
+  --frame-deep: #10162e;
+  --panel: rgba(0, 0, 0, 0.3);
+  --panel-border: rgba(0, 0, 0, 0.55);
+  --bevel: rgba(0, 0, 0, 0.45);
+  --eth: #627eea;
+  --eth-light: #8aa0f5;
+  --green: #3ba34b;
+  --green-light: #54c468;
+  --gold: #e8b84b;
+  --amber: #f4c869;
+  --red: #b3434f;
+  --white: #fff;
+  --white70: rgba(255, 255, 255, 0.7);
+  --white60: rgba(255, 255, 255, 0.6);
+  --white45: rgba(255, 255, 255, 0.45);
+  --white35: rgba(255, 255, 255, 0.35);
+  --white15: rgba(255, 255, 255, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    var(--frame-deep);
+  background-size: 44px 44px, 44px 44px, auto;
+  color: var(--white);
+  font-family: "KickpactPixel", ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--eth-light); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 18px 80px; }
+
+.nav {
+  display: flex; align-items: baseline; gap: 18px;
+  padding: 6px 0 18px;
+  border-bottom: 2px solid var(--white15);
+  margin-bottom: 22px;
+}
+.nav .brand { font-size: 22px; letter-spacing: 2px; }
+.nav .brand span { color: var(--eth); }
+.nav a.tab { font-size: 11px; letter-spacing: 2px; color: var(--white45); text-transform: uppercase; }
+.nav a.tab.on { color: var(--white); }
+.nav .right { margin-left: auto; font-size: 9px; color: var(--white35); letter-spacing: 1px; }
+
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+
+.rowhead { display: flex; justify-content: space-between; font-size: 9px; color: var(--white45); letter-spacing: 2px; margin-bottom: 8px; }
+.team { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+.team .score { margin-left: auto; }
+.live { color: var(--green-light); }
+.gold { color: var(--gold); }
+.dim { color: var(--white45); }
+.small { font-size: 9px; letter-spacing: 1px; }
+
+.oddsrow { display: flex; gap: 8px; margin-top: 10px; }
+.odds {
+  flex: 1; text-align: center; padding: 8px 6px;
+  background: var(--panel); border: 1px solid var(--white15); border-radius: 10px;
+}
+.odds .k { font-size: 9px; color: var(--white45); }
+.odds .p { font-size: 15px; margin-top: 2px; }
+.odds .bar { height: 4px; border-radius: 2px; background: var(--white15); margin-top: 6px; overflow: hidden; }
+.odds .bar i { display: block; height: 4px; background: var(--eth); }
+.odds .pc { font-size: 8px; color: var(--eth-light); margin-top: 3px; }
+
+.pill { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--white15); font-size: 9px; letter-spacing: 1px; }
+.pill.green { border-color: var(--green); color: var(--green-light); }
+.pill.gold { border-color: var(--gold); color: var(--gold); }
+
+.mono { font-family: ui-monospace, monospace; font-size: 10px; word-break: break-all; color: var(--white60); }
+
+table.receipts { width: 100%; border-collapse: collapse; font-size: 11px; }
+table.receipts th { text-align: left; font-size: 9px; color: var(--white45); letter-spacing: 2px; padding: 8px 10px; border-bottom: 2px solid var(--white15); text-transform: uppercase; }
+table.receipts td { padding: 10px; border-bottom: 1px solid var(--white15); }
+
+.btn {
+  display: inline-block; cursor: pointer;
+  background: var(--eth); color: var(--white);
+  border: 2px solid #000; border-bottom-width: 4px; border-radius: 10px;
+  font-family: inherit; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 9px 16px;
+}
+.btn:active { transform: translateY(2px); }
+.btn.green { background: var(--green); }
+.btn.red { background: var(--red); }

@@ -1,0 +1,5 @@
+# Standalone Expo app (excluded from the root workspace). Flat node_modules so
+# Metro/Babel resolve preset plugins by bare name, and so this app keeps its
+# own Tailwind v3 (NativeWind) independent of the web app's Tailwind v4.
+[install]
+linker = "hoisted"

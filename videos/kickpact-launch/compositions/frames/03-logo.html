@@ -1,0 +1,229 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/KickpactPixel-Regular.ttf") format("truetype");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #10162e;
+      font-family: "KickpactPixel", monospace;
+      color: #eaeeff;
+    }
+    #root .ground {
+      position: absolute;
+      inset: 0;
+      background: #10162e;
+    }
+    #root .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      transform-origin: 50% 40%;
+    }
+    #root .gridglow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 46% 40% at 50% 34%, rgba(98, 126, 234, 0.22) 0%, transparent 62%);
+    }
+    #root .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 42%, transparent 40%, rgba(6, 10, 24, 0.75) 100%);
+    }
+    #root .hairline {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    #root .hairline.top { top: 60px; }
+    #root .hairline.bottom { top: 1020px; }
+
+    /* converging pixel-glitch cells behind the wordmark */
+    #root .cellfield {
+      position: absolute;
+      inset: 0;
+    }
+    #root .gcell {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: rgba(98, 126, 234, 0.55);
+    }
+
+    /* KICKPACT wordmark */
+    #root .wordmark {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 232px;
+      text-align: center;
+      font-size: 184px;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: #eaeeff;
+      white-space: nowrap;
+    }
+    #root .wordmark .wl {
+      display: inline-block;
+      text-shadow:
+        0 0 30px rgba(98, 126, 234, 0.55),
+        0 0 66px rgba(98, 126, 234, 0.32);
+    }
+
+    /* accent underline sweep */
+    #root .underline {
+      position: absolute;
+      left: 560px;
+      right: 560px;
+      top: 466px;
+      height: 4px;
+      background: linear-gradient(90deg, rgba(98, 126, 234, 0), #627eea 20%, #627eea 80%, rgba(98, 126, 234, 0));
+      box-shadow: 0 0 22px 2px rgba(98, 126, 234, 0.5);
+      transform-origin: 50% 50%;
+    }
+
+    /* tagline lines */
+    #root .taglines {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 540px;
+      text-align: center;
+    }
+    #root .tline {
+      font-size: 34px;
+      letter-spacing: 0.18em;
+      color: #eaeeff;
+      text-transform: uppercase;
+      margin: 0 0 22px 0;
+    }
+    #root .tline .tick {
+      color: #627eea;
+      margin-right: 16px;
+    }
+
+    /* WDK / PEARS badges */
+    #root .badges {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 706px;
+      display: flex;
+      justify-content: center;
+      gap: 26px;
+    }
+    #root .badge {
+      background: #1b2548;
+      border: 1px solid #627eea;
+      border-radius: 999px;
+      padding: 13px 30px;
+      font-size: 22px;
+      letter-spacing: 0.26em;
+      color: #eaeeff;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="03-logo"
+    data-start="0"
+    data-duration="6.089"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="ground clip" data-start="0" data-duration="5.589" data-track-index="0"></div>
+    <div class="grid clip" id="grid" data-start="0" data-duration="5.589" data-track-index="1"></div>
+    <div class="gridglow clip" id="gridglow" data-start="0" data-duration="5.589" data-track-index="2"></div>
+    <div class="vignette clip" data-start="0" data-duration="5.589" data-track-index="3"></div>
+
+    <div class="hairline top clip" data-start="0" data-duration="5.589" data-track-index="4"></div>
+    <div class="hairline bottom clip" data-start="0" data-duration="5.589" data-track-index="5"></div>
+
+    <div class="cellfield clip" id="cellfield" data-start="0.1" data-duration="2.0" data-track-index="6"></div>
+
+    <div class="wordmark clip" id="wordmark" data-start="0.2" data-duration="5.389" data-track-index="7">
+      <span class="wl">K</span><span class="wl">I</span><span class="wl">C</span><span class="wl">K</span><span class="wl">P</span><span class="wl">A</span><span class="wl">C</span><span class="wl">T</span>
+    </div>
+
+    <div class="underline clip" id="underline" data-start="1.5" data-duration="4.089" data-track-index="8"></div>
+
+    <div class="taglines clip" id="taglines" data-start="2.0" data-duration="3.589" data-track-index="9">
+      <p class="tline" id="tline1"><span class="tick">&#9656;</span>THE POT LIVES ON SOLANA</p>
+      <p class="tline" id="tline2"><span class="tick">&#9656;</span>THE MATCH DECIDES</p>
+    </div>
+
+    <div class="badges clip" id="badges" data-start="4.0" data-duration="1.589" data-track-index="10">
+      <div class="badge" id="badgeWdk">SOLANA</div>
+      <div class="badge" id="badgePears">TXLINE</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // deterministic converging cell field behind the wordmark (no Math.random)
+      const cf = document.getElementById("cellfield");
+      if (cf && !cf.dataset.built) {
+        cf.dataset.built = "1";
+        let seed = 20260708;
+        const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+        for (let i = 0; i < 44; i++) {
+          const c = document.createElement("div");
+          c.className = "gcell gc";
+          // scattered around the wordmark band, biased toward centre
+          c.style.left = (640 + rnd() * 640).toFixed(1) + "px";
+          c.style.top = (250 + rnd() * 210).toFixed(1) + "px";
+          c.style.opacity = "0";
+          cf.appendChild(c);
+        }
+      }
+
+      // grid brightens + re-aligns toward centre; accent glow floods back in
+      tl.fromTo("#grid", { opacity: 0.4, scale: 1.06 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power3.out" }, 0);
+      tl.fromTo("#gridglow", { opacity: 0 }, { opacity: 1, duration: 1.1, ease: "power2.out" }, 0.1);
+
+      // cells converge, then dissolve as the letters take their place
+      tl.fromTo(".gc", { opacity: 0, scale: 0.4 }, { opacity: 0.7, scale: 1, duration: 0.5, stagger: 0.02, ease: "power2.out" }, 0.15);
+      tl.to(".gc", { opacity: 0, scale: 0.4, duration: 0.5, stagger: 0.02, ease: "power2.in" }, 0.9);
+
+      // KICKPACT assembles from the grid — per-letter stagger rising into place
+      tl.fromTo(
+        "#wordmark .wl",
+        { opacity: 0, y: 34, scale: 0.86 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.08, ease: "power3.out" },
+        0.35
+      );
+
+      // accent hairline sweeps under the wordmark
+      tl.fromTo("#underline", { scaleX: 0, opacity: 0.4 }, { scaleX: 1, opacity: 1, duration: 0.6, ease: "power2.out" }, 1.5);
+
+      // two tagline lines fade + rise
+      tl.fromTo("#tline1", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 2.0);
+      tl.fromTo("#tline2", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 2.35);
+
+      // badges slide up from the bottom hairline + settle
+      tl.fromTo("#badgeWdk", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 4.0);
+      tl.fromTo("#badgePears", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 4.18);
+
+      window.__timelines["03-logo"] = tl;
+    })();
+  </script>
+</template>

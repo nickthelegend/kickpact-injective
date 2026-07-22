@@ -1,0 +1,50 @@
+{
+  "version": "v2.1.0-solana",
+  "updated": "2026-07-19",
+  "network": "solana-devnet",
+  "landing": {
+    "url": "https://kickpact.vercel.app"
+  },
+  "dashboard": {
+    "url": "https://kickpact-solana.vercel.app"
+  },
+  "android": {
+    "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana/kickpact-android-arm64.apk",
+    "size": "136 MB",
+    "sha_note": "universal APK \u00b7 io.kickpact.app \u00b7 Solana devnet + TxLINE feeds \u00b7 Bluetooth duels fixed"
+  },
+  "desktop": {
+    "mac": {
+      "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/Kickpact-2.0.0-mac-arm64.dmg",
+      "size": "94 MB",
+      "note": "Apple silicon \u00b7 unsigned, right-click \u2192 Open"
+    },
+    "windows": {
+      "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/Kickpact-2.0.0-win-x64.exe",
+      "size": "71 MB",
+      "note": "portable x64 \u00b7 no installer"
+    },
+    "linux": {
+      "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/Kickpact-2.0.0-linux-x86_64.AppImage",
+      "size": "103 MB",
+      "note": "AppImage x64 \u00b7 chmod +x to run"
+    },
+    "linux_arm64": {
+      "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/Kickpact-2.0.0-linux-arm64.AppImage",
+      "size": "103 MB",
+      "note": "AppImage arm64"
+    }
+  },
+  "repo": {
+    "url": "https://github.com/nickthelegend/kickpact/tree/solana"
+  },
+  "demo": {
+    "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana/kickpact-demo.mp4",
+    "length": "4:35",
+    "note": "two-phone Bluetooth duel, narrated, settled by TxLINE proof"
+  },
+  "launch_film": {
+    "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/kickpact-launch.mp4",
+    "length": "0:50"
+  }
+}

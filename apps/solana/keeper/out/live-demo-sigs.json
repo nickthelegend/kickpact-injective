@@ -1,0 +1,11 @@
+{
+  "poolId": "1",
+  "pool": "9aDBQzaX1QyK2R4s94weTHa5xcPiKBUaBzaRZX6eyNCP",
+  "initialize": "DsiqR5p3wV8ANjJcTm3PZ33cgRjWTJSTiWro3gkwSZRy8ijmMGvykm8Ec5cxLyEBdgiTHRnkiwEfkuXjquvBjST",
+  "faucet_alice": "2oQY76cy4s7ecd83CLamXCAsmE3VDDCb3ftpkcQHDxPna8gw52nyquuRUC2wLMC4JdvQqMgLK5pu6b6xCdx1bEm6",
+  "faucet_bob": "3f6oMT4ksfweRJguAkMgXQwZTsd4W6w3byq2rgc66pRXo3J8m9bRzfakQVLcvdS2c5SCTFiyapcPUquxurs3r6To",
+  "create_pool": "3GKe6ZJzgjKNJCJbgmWHGwtkvvwPqR2dSCoXjqmPYjUmet4EHvivjECA5fFXSkSwRZA5LhQtNdMRJkCxaKg1fKrQ",
+  "join_pool": "3E5qvqnzuUBvDd7au39XywC75T9aFrM3AtEsrZgJEHS7MiVXWzj3Zi6NvtY2evptUZENvQsrwAc4qhidmUJiFeS7",
+  "settle": "21CFfLsx6Mqy7XmZUeTiPZ6PAMwGqBpwFgi4GkZvqUPbUJ9oXxV8QA6kDuqX6qWaM8vDdKWTihugkXa528uh6voS",
+  "claim_alice": "3Mxxjzci2i2GM61qFfETVqAwQrJHsBVSJMPmarXmsPpqmyZZACQoZVPVT7dMeHdJxxyTgUc5tDUnW5HaWeGWwpqg"
+}

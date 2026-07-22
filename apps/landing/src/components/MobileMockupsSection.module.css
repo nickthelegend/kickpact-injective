@@ -1,0 +1,177 @@
+/* components/MobileMockupsSection.module.css */
+
+.mobile-mockups-section {
+  padding: 80px 0;
+  background-color: transparent;
+  color: #ffffff;
+  text-align: center;
+  overflow: hidden;
+  margin-top: 100px;
+  position: relative;
+  z-index: 10;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.title {
+  font-size: 3em;
+  margin-bottom: 10px;
+  color: #e0e0e0;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.subtitle {
+  font-size: 1.2em;
+  margin-bottom: 60px;
+  color: #b0b0b0;
+  max-width: 768px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mockups-grid {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.mockup-item {
+  flex-shrink: 0;
+  width: 250px;
+  background-color: #1a1a1a;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 40px rgba(168, 85, 247, 0.3);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+/* Hide mockups 2-5 on mobile */
+.mockup-item:nth-child(n + 2) {
+  display: none;
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 480px) {
+  .mobile-mockups-section {
+    padding: 40px 0;
+    margin-top: 60px;
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+
+  .title {
+    font-size: 2em;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 0.9em;
+    margin-bottom: 40px;
+    padding: 0 10px;
+  }
+
+  .mockups-grid {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .mockup-item {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    aspect-ratio: 1 / 2;
+  }
+
+  /* Show only first mockup on mobile */
+  .mockup-item:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .mobile-mockups-section {
+    padding: 60px 0;
+    margin-top: 80px;
+  }
+
+  .title {
+    font-size: 2.5em;
+  }
+
+  .subtitle {
+    font-size: 1em;
+    margin-bottom: 40px;
+  }
+
+  .mockups-grid {
+    gap: 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .mockup-item {
+    width: 45%;
+    max-width: 200px;
+  }
+
+  /* Show first 2 mockups on tablet */
+  .mockup-item:nth-child(n + 3) {
+    display: none;
+  }
+
+  .mockup-item:nth-child(n + 2) {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mockups-grid {
+    gap: 30px;
+  }
+
+  .mockup-item {
+    width: 200px;
+  }
+
+  .title {
+    font-size: 2.5em;
+  }
+
+  /* Show first 3 mockups on small desktop */
+  .mockup-item:nth-child(n + 4) {
+    display: none;
+  }
+
+  .mockup-item:nth-child(n + 2) {
+    display: flex;
+  }
+}
+
+@media (min-width: 1025px) {
+  .mockups-grid {
+    gap: 40px;
+  }
+
+  .mockup-item {
+    width: 250px;
+  }
+
+  /* Show all 5 mockups on large desktop */
+  .mockup-item:nth-child(n + 2) {
+    display: flex;
+  }
+}

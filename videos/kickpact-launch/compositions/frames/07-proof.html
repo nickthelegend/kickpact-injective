@@ -1,0 +1,234 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/KickpactPixel-Regular.ttf") format("truetype");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #10162e;
+      font-family: "KickpactPixel", monospace;
+      color: #eaeeff;
+    }
+    #root .ground { position: absolute; inset: 0; background: #10162e; }
+    #root .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    #root .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 76% 66% at 50% 46%, transparent 40%, rgba(6, 10, 24, 0.8) 100%);
+    }
+    #root .hairline {
+      position: absolute; left: 80px; right: 80px; height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    #root .hairline.top { top: 60px; }
+    #root .hairline.bottom { top: 1020px; }
+    #root .micro {
+      position: absolute; top: 92px; left: 84px;
+      font-size: 22px; letter-spacing: 0.28em; color: #7f92c9; text-transform: uppercase;
+    }
+    #root .micro .dot { color: #4ea15b; }
+
+    /* full-time score */
+    #root .ft {
+      position: absolute; left: 150px; top: 186px;
+      display: flex; align-items: baseline; gap: 26px;
+    }
+    #root .ft .lbl { font-size: 24px; letter-spacing: 0.24em; color: #7f92c9; }
+    #root .ft .score { font-size: 58px; letter-spacing: 0.03em; color: #eaeeff; }
+
+    /* the two claims */
+    #root .claim {
+      position: absolute;
+      width: 700px;
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 26px 32px;
+    }
+    #root .claim .who { font-size: 22px; letter-spacing: 0.22em; color: #7f92c9; }
+    #root .claim .says { font-size: 44px; color: #eaeeff; margin-top: 12px; }
+    #root .claim.a { left: 150px; top: 320px; }
+    #root .claim.b { left: 150px; top: 500px; }
+    #root .claim.a { border-color: rgba(200, 60, 70, 0.45); }
+    #root .claim.b { border-color: rgba(78, 161, 91, 0.45); }
+
+    /* the program in the middle */
+    #root .prog {
+      position: absolute; left: 940px; top: 318px;
+      width: 400px;
+      border: 2px solid #627eea;
+      border-radius: 18px;
+      background: rgba(98, 126, 234, 0.08);
+      padding: 22px 26px;
+      box-shadow: 0 0 34px rgba(98, 126, 234, 0.28);
+    }
+    #root .prog .pl { font-size: 20px; letter-spacing: 0.22em; color: #8aa0f5; }
+    #root .prog .fn { font-size: 27px; color: #eaeeff; margin-top: 12px; letter-spacing: 0.01em; }
+    #root .prog .arrowdown { font-size: 26px; color: #627eea; margin-top: 10px; }
+    #root .oracle {
+      position: absolute; left: 940px; top: 500px;
+      width: 400px;
+      border: 2px dashed rgba(138, 160, 245, 0.6);
+      border-radius: 18px;
+      padding: 20px 26px;
+    }
+    #root .oracle .ol { font-size: 20px; letter-spacing: 0.22em; color: #8aa0f5; }
+    #root .oracle .ov { font-size: 24px; color: #eaeeff; margin-top: 10px; }
+
+    /* verdicts */
+    #root .verdict {
+      position: absolute; left: 1420px;
+      width: 350px; text-align: center;
+      border-radius: 18px;
+      padding: 26px 20px;
+      font-size: 40px;
+      letter-spacing: 0.06em;
+    }
+    #root .verdict.no {
+      top: 320px;
+      border: 2px solid #c83c46;
+      background: rgba(200, 60, 70, 0.12);
+      color: #ff8b93;
+    }
+    #root .verdict.yes {
+      top: 500px;
+      border: 2px solid #4ea15b;
+      background: rgba(78, 161, 91, 0.14);
+      color: #7fe08f;
+    }
+    #root .verdict .sub {
+      display: block; font-size: 19px; letter-spacing: 0.18em; color: #7f92c9; margin-top: 10px;
+    }
+
+    /* the punchline */
+    #root .kicker {
+      position: absolute; left: 0; right: 0; top: 790px;
+      text-align: center;
+      font-size: 68px;
+      letter-spacing: 0.04em;
+      color: #eaeeff;
+    }
+    #root .kicker .em { color: #7fe08f; }
+    #root .subkick {
+      position: absolute; left: 0; right: 0; top: 890px;
+      text-align: center;
+      font-size: 25px;
+      letter-spacing: 0.2em;
+      color: #7f92c9;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="07-proof"
+    data-start="0"
+    data-duration="10.527"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="ground clip" data-start="0" data-duration="10.027" data-track-index="0"></div>
+    <div class="grid clip" data-start="0" data-duration="10.027" data-track-index="1"></div>
+    <div class="vignette clip" data-start="0" data-duration="10.027" data-track-index="2"></div>
+    <div class="hairline top clip" data-start="0" data-duration="10.027" data-track-index="3"></div>
+    <div class="hairline bottom clip" data-start="0" data-duration="10.027" data-track-index="4"></div>
+
+    <div class="micro clip" data-start="0.1" data-duration="9.927" data-track-index="5">
+      <span class="dot">●</span>&nbsp; SETTLEMENT · PERMISSIONLESS
+    </div>
+
+    <div class="ft clip" id="ft" data-start="0.2" data-duration="9.827" data-track-index="6">
+      <span class="lbl">FULL TIME</span>
+      <span class="score" id="score">ENGLAND 1 &ndash; 2 ARGENTINA</span>
+    </div>
+
+    <!-- claim A — the lie -->
+    <div class="claim a clip" id="claimA" data-start="1.5" data-duration="8.527" data-track-index="7">
+      <div class="who">ANYONE CAN CLAIM</div>
+      <div class="says">&ldquo;ENGLAND WON.&rdquo;</div>
+    </div>
+
+    <!-- claim B — the truth -->
+    <div class="claim b clip" id="claimB" data-start="4.6" data-duration="5.427" data-track-index="8">
+      <div class="who">ANYONE CAN CLAIM</div>
+      <div class="says">&ldquo;ARGENTINA WON.&rdquo;</div>
+    </div>
+
+    <!-- the program + the oracle -->
+    <div class="prog clip" id="prog" data-start="2.1" data-duration="7.927" data-track-index="9">
+      <div class="pl">THE PROGRAM</div>
+      <div class="fn">builds the test on-chain</div>
+      <div class="arrowdown">&darr;</div>
+    </div>
+    <div class="oracle clip" id="oracle" data-start="2.5" data-duration="7.527" data-track-index="10">
+      <div class="ol">CPI &rarr; TXLINE</div>
+      <div class="ov">validate_stat_v2</div>
+    </div>
+
+    <div class="verdict no clip" id="vNo" data-start="3.2" data-duration="6.827" data-track-index="11">
+      REFUTED<span class="sub">TRANSACTION FAILS</span>
+    </div>
+    <div class="verdict yes clip" id="vYes" data-start="6.0" data-duration="4.027" data-track-index="12">
+      CONFIRMED<span class="sub">WINNERS SPLIT THE POT</span>
+    </div>
+
+    <div class="kicker clip" id="kicker" data-start="7.6" data-duration="2.427" data-track-index="13">
+      ONLY THE <span class="em">TRUTH</span> SETTLES IT.
+    </div>
+    <div class="subkick clip" id="subkick" data-start="8.3" data-duration="1.727" data-track-index="14">
+      NOT US. NOT A KEEPER. NOT A BOOKIE.
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(".grid", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo(".hairline", { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo(".micro", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo("#ft", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.2);
+
+      // the program + oracle stand up first — the machine that judges
+      tl.fromTo("#prog", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }, 2.1);
+      tl.fromTo("#oracle", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 2.5);
+
+      // A LIAR claims England — it travels to the program and is refused
+      tl.fromTo("#claimA", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 1.5);
+      tl.to("#claimA", { x: 60, duration: 0.5, ease: "power1.inOut" }, 2.7);
+      tl.fromTo("#vNo", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(2)" }, 3.2);
+      // the refusal shakes it back
+      tl.to("#claimA", { keyframes: { x: [60, 40, 55, 45, 50] }, duration: 0.4, ease: "power1.out" }, 3.3);
+      tl.to("#claimA", { opacity: 0.4, duration: 0.5, ease: "power2.inOut" }, 3.8);
+
+      // THE TRUTH claims Argentina — it passes
+      tl.fromTo("#claimB", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 4.6);
+      tl.to("#claimB", { x: 60, duration: 0.5, ease: "power1.inOut" }, 5.4);
+      tl.fromTo("#vYes", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(2)" }, 6.0);
+      // the oracle pulses green as it confirms
+      tl.fromTo("#oracle", { borderColor: "rgba(138,160,245,0.6)" }, { borderColor: "rgba(78,161,91,0.9)", duration: 0.4, ease: "power2.out" }, 6.0);
+
+      // the point
+      tl.fromTo("#kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 7.6);
+      tl.fromTo("#subkick", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 8.3);
+
+      window.__timelines["07-proof"] = tl;
+    })();
+  </script>
+</template>

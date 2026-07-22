@@ -1,0 +1,191 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/KickpactPixel-Regular.ttf") format("truetype");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #10162e;
+      font-family: "KickpactPixel", monospace;
+      color: #eaeeff;
+    }
+    #root .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    #root .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 72% 62% at 50% 46%, transparent 38%, rgba(6, 10, 24, 0.8) 100%);
+    }
+    #root .hairline {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    #root .hairline.top { top: 60px; }
+    #root .hairline.bottom { top: 1020px; }
+    #root .micro {
+      position: absolute;
+      top: 92px;
+      left: 84px;
+      font-size: 22px;
+      letter-spacing: 0.28em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+    #root .micro .sq { color: #e8b84b; }
+
+    #root .row {
+      position: absolute;
+      left: 150px;
+      width: 1360px;
+      display: flex;
+      align-items: center;
+      gap: 42px;
+    }
+    #root .row.r1 { top: 300px; }
+    #root .row.r2 { top: 470px; }
+    #root .cell {
+      font-size: 46px;
+      letter-spacing: 0.04em;
+      color: #eaeeff;
+      width: 430px;
+    }
+    #root .cell .sub {
+      display: block;
+      font-size: 22px;
+      letter-spacing: 0.2em;
+      color: #7f92c9;
+      margin-top: 10px;
+    }
+    #root .arrow {
+      font-size: 46px;
+      color: #627eea;
+      width: 70px;
+      text-align: center;
+    }
+    #root .them {
+      font-size: 46px;
+      letter-spacing: 0.04em;
+      color: #7f92c9;
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      padding: 18px 30px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    #root .qwrap {
+      position: absolute;
+      left: 150px;
+      top: 680px;
+      width: 1620px;
+    }
+    #root .qrule {
+      width: 1620px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.14);
+      transform-origin: 0% 50%;
+    }
+    #root .q {
+      margin-top: 46px;
+      font-size: 104px;
+      line-height: 1.04;
+      color: #eaeeff;
+    }
+    #root .q .hl { color: #e8b84b; }
+    #root .qtag {
+      position: absolute;
+      right: 0;
+      top: 34px;
+      font-size: 22px;
+      letter-spacing: 0.24em;
+      color: #7f92c9;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="02-problem"
+    data-start="0"
+    data-duration="8.884"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="grid clip" data-start="0" data-duration="8.384" data-track-index="0"></div>
+    <div class="vignette clip" data-start="0" data-duration="8.384" data-track-index="1"></div>
+    <div class="hairline top clip" data-start="0" data-duration="8.384" data-track-index="2"></div>
+    <div class="hairline bottom clip" data-start="0" data-duration="8.384" data-track-index="3"></div>
+
+    <div class="micro clip" id="micro" data-start="0" data-duration="8.384" data-track-index="4">
+      <span class="sq">■</span>&nbsp; HOW IT WORKS TODAY
+    </div>
+
+    <div class="row r1 clip" id="r1" data-start="0.5" data-duration="7.8" data-track-index="5">
+      <div class="cell">YOUR MONEY<span class="sub">THE STAKE</span></div>
+      <div class="arrow" id="a1">&rarr;</div>
+      <div class="them" id="t1">THEIR APP</div>
+    </div>
+
+    <div class="row r2 clip" id="r2" data-start="1.5" data-duration="6.8" data-track-index="6">
+      <div class="cell">THE RESULT<span class="sub">WHO WAS RIGHT</span></div>
+      <div class="arrow" id="a2">&rarr;</div>
+      <div class="them" id="t2">THEIR WORD</div>
+    </div>
+
+    <div class="qwrap clip" id="qwrap" data-start="4.6" data-duration="3.7" data-track-index="7">
+      <div class="qrule" id="qrule"></div>
+      <div class="qtag" id="qtag">FULL TIME</div>
+      <div class="q">WHO DECIDES<br /><span class="hl" id="qhl">WHO WAS RIGHT?</span></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(".grid", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo(".hairline", { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo("#micro", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+
+      // row 1 — your money leaves you
+      tl.fromTo("#r1", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.5);
+      tl.fromTo("#a1", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 1.0);
+      tl.fromTo("#t1", { opacity: 0, x: 22 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 1.15);
+
+      // row 2 — and so does the verdict
+      tl.fromTo("#r2", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 1.5);
+      tl.fromTo("#a2", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 2.0);
+      tl.fromTo("#t2", { opacity: 0, x: 22 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 2.15);
+
+      // both arrows drift toward "them" — the drain
+      tl.to("#a1, #a2", { x: 10, repeat: 3, yoyo: true, duration: 0.5, ease: "sine.inOut" }, 2.7);
+
+      // the question lands
+      tl.fromTo("#qrule", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 4.6);
+      tl.fromTo("#qtag", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 4.9);
+      tl.fromTo("#qwrap .q", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 5.0);
+      tl.fromTo("#qhl", { opacity: 0.25 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 5.6);
+      // the two "theirs" dim as the question takes over
+      tl.to("#t1, #t2", { opacity: 0.35, duration: 0.6, ease: "power2.inOut" }, 5.2);
+
+      window.__timelines["02-problem"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,9 @@
+KICKPACT — your keys. your predictions. your crowd.
+Self-custodial, peer-to-peer football predictions for the World Cup moment.
+Problem: prediction apps hold your money; group chats live on someone's server. Neither is yours.
+Kickpact: self-custodial predictions + serverless watch parties. Powered by WDK + Pears.
+Pacts: pick a match, back an outcome, you and a friend each lock USD₮ in on-chain escrow. The real result pays the winner, automatically. No custodian, no KYC.
+Arena / Duel: swipe UP or DOWN on live crypto markets, settled on real prices — free solo vs a bot, or staked vs a friend.
+Match Rooms (Pears): every match opens a peer-to-peer watch party over Hyperswarm — fans find each other on the DHT, no server, every message signed by your own wallet.
+CTA: Kickpact — back your team, own the bet. Your keys, your predictions, your crowd.
+Tracks: WDK (Wallets) + Pears (P2P).

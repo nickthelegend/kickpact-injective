@@ -1,0 +1,134 @@
+{
+  "voice": "am_michael",
+  "speed": 0.95,
+  "_comment": "Every line below describes something that was actually observed on two real phones (SM-S928B + SM-G998U) driven over adb, with the on-chain effect verified against Solana devnet. Nothing here is aspirational — if a claim could not be demonstrated it is not in this script.",
+  "segments": [
+    {
+      "id": "01-open",
+      "source": "landing",
+      "text": "Kickpact is a World Cup prediction app on Solana. Friends put the same stake on a match, and the pot is settled by TxLINE's cryptographic proof of what actually happened — not by us.",
+      "full": true,
+      "offset": 0
+    },
+    {
+      "id": "02-download",
+      "source": "landing",
+      "text": "It ships as a real Android app, a desktop build, and a web dashboard. Everything you're about to see runs on two physical phones against Solana devnet.",
+      "full": true,
+      "offset": 12
+    },
+    {
+      "id": "03-signin",
+      "source": "p7-privy-B",
+      "text": "Signing in is self-custodial, and there are three ways in. Privy — an email or a social account, which mints you an embedded Solana wallet. Phantom or Solflare, over Mobile Wallet Adapter. Or a burner key sealed in the device keychain, which is what these two phones are running on.",
+      "offset": 22
+    },
+    {
+      "id": "04-mint",
+      "source": "p1-mint",
+      "both": true,
+      "text": "Both phones mint test dollars from the on-chain faucet. Watch the balances and the gas — these are real devnet transactions, confirmed before the screen updates.",
+      "offset": 2
+    },
+    {
+      "id": "05-odds",
+      "source": "p2-pool-A",
+      "text": "This is the live TxLINE feed: World Cup fixtures, StablePrice odds, and the implied probabilities. Spain three twenty-five, the draw two-oh-six, Argentina four eighty.",
+      "offset": 6
+    },
+    {
+      "id": "06-pool",
+      "source": "p2-pool-A",
+      "text": "The first phone opens a pool and takes Argentina. Ten test dollars leave the wallet and land in an escrow that no admin key can touch.",
+      "offset": 52
+    },
+    {
+      "id": "07-join",
+      "source": "p3-join-B",
+      "text": "The second phone — a different device, a different wallet — sees that same pool appear, takes Spain, and matches the stake. Twenty dollars are now escrowed on chain, on opposite sides.",
+      "offset": 34
+    },
+    {
+      "id": "07b-physical",
+      "source": "blue",
+      "full": true,
+      "offset": 46,
+      "text": "This is not a screen recording. Two phones, one pair of hands, one room. Pool number twelve, ten dollars a side, opened between them over Bluetooth — and staked on Solana.",
+      "note": "user-supplied handheld footage: demo/capture/blue.mp4",
+      "grade": "eq=brightness=0.06:contrast=1.18:saturation=1.05"
+    },
+    {
+      "id": "08-bluetooth",
+      "source": "p4-duel",
+      "both": true,
+      "text": "Now the part that needs two real radios. Both phones open the nearby room and find each other over Bluetooth, using Google Nearby Connections. No server, no internet — just proximity.",
+      "offset": 152
+    },
+    {
+      "id": "09-chat",
+      "source": "f1-duel",
+      "both": true,
+      "text": "They connect, and the room goes live with two people in it. A message typed on one phone arrives on the other over the Bluetooth link.",
+      "note": "verified: 'CUM3HB: argentina taking it 1' delivered A<->B",
+      "offset": 0
+    },
+    {
+      "id": "10-btduel",
+      "source": "f1-duel",
+      "both": true,
+      "text": "Then a duel is opened right there in the room. The invite travels over Bluetooth — but the money never does. The stake goes straight into the same on-chain escrow, and the friend joins the pot from their own phone.",
+      "offset": 20
+    },
+    {
+      "id": "11-receipts",
+      "source": "p6-receipts",
+      "both": true,
+      "text": "Both phones show the same receipts, because both are reading the same chain. Every pool, every pot, every settlement.",
+      "offset": 12
+    },
+    {
+      "id": "12-proof",
+      "source": "p6-receipts-A",
+      "text": "Here is a settled one. England one, Argentina two. The program did not take our word for it — it was handed TxLINE's Merkle proof of both final goal counts, rebuilt the winning condition itself, and called into TxLINE's oracle program to check it.",
+      "offset": 84
+    },
+    {
+      "id": "13-verify",
+      "source": "p6-receipts-A",
+      "text": "And you can re-run that check from the phone, right now, against the live oracle on devnet. Oracle confirms. That is the whole point: the data decides, and anyone can audit it.",
+      "offset": 93
+    },
+    {
+      "id": "14-recap",
+      "source": "landing",
+      "full": true,
+      "offset": 26,
+      "text": "Bluetooth duels with the people next to you, code duels with the people who aren't, and one escrow primitive underneath all of it."
+    },
+    {
+      "id": "15-txline",
+      "source": "p2-pool-A",
+      "offset": 6,
+      "text": "None of this exists without TxLINE. Getting in took a single on-chain subscription and one signature — no sales call, no API key waiting in an email. Minutes later we had World Cup fixtures, live scores over a streaming feed, and StablePrice odds good enough to put straight in front of a user."
+    },
+    {
+      "id": "16-txline-proof",
+      "source": "p6-receipts-A",
+      "offset": 84,
+      "text": "But the feed is not the clever part. TxLINE hashes every score update into a Merkle tree, publishes the daily roots on Solana, and ships an oracle program that will check a stat against them. That is the piece nobody else gives you: it turns a football result into something a smart contract can verify for itself."
+    },
+    {
+      "id": "17-txline-why",
+      "source": "p6-receipts-A",
+      "offset": 93,
+      "text": "Which is why Kickpact never has to be trusted. Our program takes the outcome a caller claims, rebuilds the winning condition on-chain, and hands it to TxLINE's validator. A caller who lies just fails. There is no admin key over the pot, because there is no longer anything for an admin to decide. We built one market on this — one-x-two on goals. TxLINE also proves cards, corners, and each half separately, so the same escrow, unchanged, settles a hundred markets we haven't written yet."
+    },
+    {
+      "id": "18-close",
+      "source": "landing",
+      "full": true,
+      "offset": 30,
+      "text": "Two phones, a Bluetooth handshake, twenty dollars in escrow, and a payout that traces back to a cryptographic proof of the final score. Built on TxLINE. Settled on Solana. Kickpact."
+    }
+  ]
+}

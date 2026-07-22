@@ -1,0 +1,38 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+kickpact = "4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa"
+
+[programs.localnet]
+kickpact = "4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "keeper/keys/keeper.json"
+
+[scripts]
+test = "bun test tests/ --timeout 300000"
+
+# Local test validator mirrors devnet: the real txoracle program plus the
+# daily-roots PDA that anchors the England v Argentina proof fixture, so the
+# CPI settlement path runs offline against REAL World Cup data.
+[test]
+startup_wait = 20000
+
+[test.validator]
+url = "https://api.devnet.solana.com"
+bind_address = "127.0.0.1"
+
+[[test.validator.clone]]
+address = "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J"
+
+[[test.validator.clone]]
+address = "HJ6nSVkUs4VG9JQ5sEUq3VbmyUSBf76ePXUCATLtRYTX"

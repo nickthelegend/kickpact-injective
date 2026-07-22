@@ -1,0 +1,121 @@
+# Kickpact CI — the Anchor program (settlement proven against a REAL TxLINE
+# World Cup proof) plus typecheck/build for the app, dashboard and landing.
+#
+# The program test spins a local validator that CLONES the devnet TxLINE oracle
+# and the daily-scores roots PDA, so `settle` exercises the real validate_stat_v2
+# CPI against a real Merkle proof (committed under apps/solana/keeper/out/).
+# It needs devnet reachable to clone those two accounts — nothing else.
+name: CI
+
+on:
+  push:
+    branches: [solana, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  program:
+    name: Anchor program (CPI vs real TxLINE proof)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RUST_BACKTRACE: "1"
+      # Pin the toolchain we actually develop against. `anchor build` shells out
+      # to cargo-build-sbf, which carries its own rustc — but the IDL pass uses
+      # the HOST rustc, so an unpinned "stable" can drift out from under us.
+      SOLANA_VERSION: v3.1.11
+      ANCHOR_VERSION: 0.32.1
+    defaults:
+      run:
+        working-directory: apps/solana
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@1.94.0
+
+      - name: Cache cargo + platform-tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.local/share/solana
+            apps/solana/target
+          key: solana-${{ env.SOLANA_VERSION }}-anchor-${{ env.ANCHOR_VERSION }}-${{ hashFiles('apps/solana/Cargo.lock') }}
+          restore-keys: solana-${{ env.SOLANA_VERSION }}-anchor-${{ env.ANCHOR_VERSION }}-
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor (avm)
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+          avm install "$ANCHOR_VERSION"
+          avm use "$ANCHOR_VERSION"
+
+      # If the build breaks, this is what tells us why — a missing
+      # cargo-build-sbf or a drifted rustc is invisible in `anchor build`'s
+      # output but obvious here.
+      - name: Toolchain diagnostics
+        run: |
+          echo "PATH=$PATH"
+          which solana anchor cargo rustc || true
+          solana --version
+          anchor --version
+          rustc --version
+          cargo --version
+          cargo-build-sbf --version || echo "!! cargo-build-sbf MISSING — anchor build cannot work"
+          echo "Cargo.lock version: $(grep -m1 '^version' Cargo.lock)"
+
+      - name: Keypair for the test validator
+        run: solana-keygen new --no-bip39-passphrase -s -o keeper/keys/keeper.json
+
+      - name: bun install
+        run: bun install
+
+      - name: anchor build
+        run: anchor build
+
+      - name: anchor test
+        run: anchor test
+
+      - name: Validator log on failure
+        if: failure()
+        run: tail -80 .anchor/test-ledger/validator.log 2>/dev/null || echo "no validator log"
+
+  mobile:
+    name: Android app (typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: bun install
+        run: bun install
+      - name: typecheck
+        run: npx tsc --noEmit
+
+  web:
+    name: Dashboard + landing (build)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [dashboard, landing]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install
+        run: bun install
+      - name: build
+        run: npm run build

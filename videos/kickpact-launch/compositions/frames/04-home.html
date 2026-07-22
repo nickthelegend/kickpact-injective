@@ -1,0 +1,463 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/KickpactPixel-Regular.ttf") format("truetype");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #10162e;
+      font-family: "KickpactPixel", monospace;
+      color: #eaeeff;
+    }
+    #root .ground {
+      position: absolute;
+      inset: 0;
+      background: #10162e;
+    }
+    #root .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    #root .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 74% 64% at 62% 46%, transparent 40%, rgba(6, 10, 24, 0.78) 100%);
+    }
+    #root .hairline {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    #root .hairline.top { top: 60px; }
+    #root .hairline.bottom { top: 1020px; }
+
+    #root .micro {
+      position: absolute;
+      top: 92px;
+      left: 84px;
+      font-size: 22px;
+      letter-spacing: 0.28em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+    #root .micro .dot { color: #627eea; }
+
+    #root .dotfield { position: absolute; inset: 0; }
+    #root .op-dot {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(234, 238, 255, 0.4);
+    }
+
+    /* ---- PHONE FRAME (real Kickpact Home) — centred around x=1180 ---- */
+    #root .phone {
+      position: absolute;
+      left: 965px;
+      top: 34px;
+      width: 430px;
+      height: 826px;
+      border-radius: 40px;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      background: #10162e;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 24px 20px 20px;
+    }
+    #root .notch {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+    }
+    #root .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* pill row TESTNET / MAINNET */
+    #root .pillrow { display: flex; gap: 8px; }
+    #root .pill {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    #root .pill.active { background: #627eea; color: #10162e; }
+    #root .pill.idle {
+      background: #1b2548;
+      color: #7f92c9;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    /* balance card */
+    #root .balcard {
+      position: relative;
+      background: #1b2548;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    #root .balcard .m {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+    #root .balcard .big {
+      font-size: 40px;
+      line-height: 1;
+      color: #eaeeff;
+      margin-top: 10px;
+    }
+    #root .balcard .sub {
+      font-size: 14px;
+      color: #7f92c9;
+      margin-top: 8px;
+    }
+    #root .chainbadge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(98, 126, 234, 0.16);
+      border: 1px solid rgba(98, 126, 234, 0.55);
+      color: #627eea;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    /* action row */
+    #root .actionrow { display: flex; justify-content: space-between; padding: 2px 4px; }
+    #root .action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      width: 64px;
+    }
+    #root .action .circ {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #2c3a63;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #eaeeff;
+      font-family: "Menlo", monospace;
+    }
+    #root .action .lbl {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+
+    /* match cards */
+    #root .matchcard {
+      position: relative;
+      background: #1b2548;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    #root .mc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    #root .mc-top .wc {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+    #root .datepill {
+      background: #10162e;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      font-size: 9px;
+      color: #7f92c9;
+      padding: 3px 7px;
+      letter-spacing: 0.04em;
+    }
+    #root .teamrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    #root .flag {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      flex: none;
+    }
+    #root .flag.arg { background: linear-gradient(#75aadb 0 33%, #ffffff 33% 66%, #75aadb 66%); }
+    #root .flag.egy { background: #c8102e; }
+    #root .flag.fra { background: linear-gradient(90deg, #1e3a8a 0 33%, #ffffff 33% 66%, #ce1126 66%); }
+    #root .flag.mar { background: #c1272d; }
+    #root .flag.esp { background: linear-gradient(#aa151b 0 25%, #f1bf00 25% 75%, #aa151b 75%); }
+    #root .flag.eng { background: #f2f2f2; position: relative; }
+    #root .flag.eng::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(#ce1124 0 0) center / 100% 22% no-repeat,
+        linear-gradient(#ce1124 0 0) center / 22% 100% no-repeat;
+    }
+    #root .teamname { font-size: 16px; color: #eaeeff; }
+    #root .predict {
+      font-size: 9px;
+      color: #627eea;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    /* tap ripple on the top card */
+    #root .ripple {
+      position: absolute;
+      top: calc(50% - 34px);
+      left: calc(50% - 34px);
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 2px solid #627eea;
+      transform-origin: 50% 50%;
+      pointer-events: none;
+    }
+
+    /* ---- kinetic labels + leader lines (LEFT of phone) ---- */
+    #root .klabel {
+      position: absolute;
+      width: 380px;
+      text-align: right;
+      color: #eaeeff;
+    }
+    #root .klabel .kmain {
+      font-size: 30px;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+    #root .klabel .ksub {
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      color: #7f92c9;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+    #root .klabel .arw { color: #627eea; }
+    #root #klabel1 { left: 500px; top: 156px; }
+    #root #klabel2 { left: 500px; top: 470px; }
+
+    #root .leader {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(98, 126, 234, 0.12), #627eea);
+      transform-origin: 0% 50%;
+    }
+    #root .leader .tip {
+      position: absolute;
+      right: -3px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #627eea;
+      box-shadow: 0 0 10px 2px rgba(98, 126, 234, 0.6);
+    }
+    #root #leader1 { left: 892px; top: 190px; width: 74px; }
+    #root #leader2 { left: 892px; top: 504px; width: 74px; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="04-home"
+    data-start="0"
+    data-duration="4.660"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="ground clip" data-start="0" data-duration="4.660" data-track-index="0"></div>
+    <div class="grid clip" data-start="0" data-duration="4.660" data-track-index="1"></div>
+    <div class="dotfield clip" id="dotfield" data-start="0" data-duration="4.660" data-track-index="2"></div>
+    <div class="vignette clip" data-start="0" data-duration="4.660" data-track-index="3"></div>
+
+    <div class="hairline top clip" data-start="0" data-duration="4.660" data-track-index="4"></div>
+    <div class="hairline bottom clip" data-start="0" data-duration="4.660" data-track-index="5"></div>
+
+    <div class="micro clip" data-start="0.2" data-duration="4.460" data-track-index="6">
+      <span class="dot">&#9679;</span>&nbsp; SELF&#8209;CUSTODIAL WALLET
+    </div>
+
+    <!-- PHONE — real Kickpact Home -->
+    <div class="phone clip" id="phone" data-start="0" data-duration="4.660" data-track-index="7">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <!-- (a) network pill row -->
+        <div class="pillrow clip" id="pillrow" data-start="0.5" data-duration="4.160" data-track-index="8">
+          <div class="pill active">TESTNET</div>
+          <div class="pill idle">MAINNET</div>
+        </div>
+
+        <!-- (b) balance card -->
+        <div class="balcard clip" id="balcard" data-start="0.7" data-duration="3.960" data-track-index="9">
+          <div class="chainbadge">SOL</div>
+          <div class="m">TOTAL BALANCE</div>
+          <div class="big">$100.00</div>
+          <div class="sub">100.00 kUSD &middot; Solana devnet</div>
+        </div>
+
+        <!-- (c) action row -->
+        <div class="actionrow clip" id="actionrow" data-start="0.95" data-duration="3.710" data-track-index="10">
+          <div class="action"><div class="circ">&#65291;</div><div class="lbl">MINT</div></div>
+          <div class="action"><div class="circ">&#9679;</div><div class="lbl">LIVE</div></div>
+          <div class="action"><div class="circ">&#9654;</div><div class="lbl">UPCOMING</div></div>
+          <div class="action"><div class="circ">&#10003;</div><div class="lbl">DONE</div></div>
+        </div>
+
+        <!-- (d) match cards -->
+        <div class="matchcard clip" id="mc1" data-start="3.4" data-duration="1.379" data-track-index="11">
+          <div class="ripple clip" id="ripple" data-start="3.9" data-duration="0.879" data-track-index="12"></div>
+          <div class="mc-top">
+            <div class="wc">WORLD CUP</div>
+            <div class="datepill">JUL 20 &middot; 12:30</div>
+          </div>
+          <div class="teamrow"><div class="flag esp"></div><div class="teamname">SPAIN</div></div>
+          <div class="teamrow"><div class="flag arg"></div><div class="teamname">ARGENTINA</div></div>
+          <div class="predict">TAP TO PREDICT &rarr;</div>
+        </div>
+
+        <div class="matchcard clip" id="mc2" data-start="3.55" data-duration="1.229" data-track-index="13">
+          <div class="mc-top">
+            <div class="wc">WORLD CUP</div>
+            <div class="datepill">JUL 19 &middot; 19:00</div>
+          </div>
+          <div class="teamrow"><div class="flag fra"></div><div class="teamname">FRANCE</div></div>
+          <div class="teamrow"><div class="flag eng"></div><div class="teamname">ENGLAND</div></div>
+          <div class="predict">TAP TO PREDICT &rarr;</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- kinetic labels + leader lines -->
+    <div class="leader clip" id="leader1" data-start="2.0" data-duration="2.660" data-track-index="14"><span class="tip"></span></div>
+    <div class="klabel clip" id="klabel1" data-start="2.0" data-duration="2.660" data-track-index="15">
+      <div class="kmain">YOUR OWN WALLET</div>
+      <div class="ksub">keys stay with you</div>
+    </div>
+
+    <div class="leader clip" id="leader2" data-start="2.6" data-duration="2.060" data-track-index="16"><span class="tip"></span></div>
+    <div class="klabel clip" id="klabel2" data-start="2.6" data-duration="2.060" data-track-index="17">
+      <div class="kmain">EVERY MATCH, LIVE</div>
+      <div class="ksub">live from txline</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // faint deterministic dot-field on the open left area (seeded LCG — no Math.random)
+      const df = document.getElementById("dotfield");
+      if (df && !df.dataset.built) {
+        df.dataset.built = "1";
+        let seed = 20260708;
+        const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+        for (let i = 0; i < 46; i++) {
+          const d = document.createElement("div");
+          d.className = "op-dot dp";
+          d.style.left = (80 + rnd() * 820).toFixed(1) + "px";
+          d.style.top = (140 + rnd() * 700).toFixed(1) + "px";
+          d.style.opacity = "0";
+          df.appendChild(d);
+        }
+      }
+
+      // furniture settles
+      tl.fromTo(".grid", { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.out" }, 0);
+      tl.fromTo(".hairline", { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.8, ease: "power2.out" }, 0.15);
+      tl.fromTo(".micro", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" }, 0.3);
+      tl.fromTo(".dp", { opacity: 0 }, { opacity: 0.4, duration: 0.9, stagger: 0.01, ease: "power1.out" }, 0.5);
+
+      // (0.0-2.2) device rises + settles
+      tl.fromTo("#phone", { opacity: 0, y: 96 }, { opacity: 1, y: 0, duration: 1.1, ease: "power3.out" }, 0);
+
+      // TESTNET row, balance card, action row stagger in
+      tl.fromTo("#pillrow", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.5);
+      tl.fromTo("#balcard", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.7);
+      tl.fromTo("#actionrow .action", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power2.out" }, 1.0);
+
+      // (2.0-3.4) leader lines draw + labels connect
+      tl.fromTo("#leader1", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 2.0);
+      tl.fromTo("#klabel1", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.55, ease: "power2.out" }, 2.05);
+      tl.fromTo("#leader2", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 2.6);
+      tl.fromTo("#klabel2", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.55, ease: "power2.out" }, 2.65);
+
+      // (3.4-4.8) match cards slide up inside the phone
+      tl.fromTo("#mc1", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 3.4);
+      tl.fromTo("#mc2", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 3.55);
+
+      // tap ripple lands on the top card
+      tl.fromTo("#ripple", { scale: 0.3, opacity: 0.7 }, { scale: 1.9, opacity: 0, duration: 0.7, ease: "power2.out" }, 3.9);
+
+      // top card accent border pulse (fromTo, no repeat/yoyo)
+      tl.fromTo(
+        "#mc1",
+        { borderColor: "rgba(255,255,255,0.07)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" },
+        { borderColor: "#627eea", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 0 28px rgba(98,126,234,0.55)", duration: 0.32, ease: "power2.out" },
+        3.95
+      );
+      tl.to(
+        "#mc1",
+        { borderColor: "rgba(255,255,255,0.07)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", duration: 0.5, ease: "power2.inOut" },
+        4.3
+      );
+
+      window.__timelines["04-home"] = tl;
+    })();
+  </script>
+</template>

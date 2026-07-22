@@ -1,0 +1,289 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+      src: url("assets/fonts/KickpactPixel-Regular.ttf") format("truetype");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #10162e;
+      font-family: "KickpactPixel", monospace;
+      color: #eaeeff;
+    }
+    #root .ground { position: absolute; inset: 0; background: #10162e; }
+    #root .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    #root .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 74% 64% at 50% 46%, transparent 40%, rgba(6, 10, 24, 0.78) 100%);
+    }
+    #root .hairline {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    #root .hairline.top { top: 60px; }
+    #root .hairline.bottom { top: 1020px; }
+    #root .micro {
+      position: absolute;
+      top: 92px;
+      left: 84px;
+      font-size: 22px;
+      letter-spacing: 0.28em;
+      color: #7f92c9;
+      text-transform: uppercase;
+    }
+    #root .micro .dot { color: #627eea; }
+
+    /* the divider between the two ways in */
+    #root .split {
+      position: absolute;
+      left: 959px;
+      top: 210px;
+      width: 2px;
+      height: 660px;
+      background: linear-gradient(rgba(255,255,255,0.02), rgba(255, 255, 255, 0.18), rgba(255,255,255,0.02));
+      transform-origin: 50% 50%;
+    }
+
+    #root .side { position: absolute; top: 232px; width: 720px; }
+    #root .side.left { left: 150px; }
+    #root .side.right { left: 1050px; }
+    #root .side .kicker {
+      font-size: 24px;
+      letter-spacing: 0.24em;
+      color: #7f92c9;
+    }
+    #root .side.left .kicker { color: #8aa0f5; }
+    #root .side.right .kicker { color: #e8b84b; }
+    #root .side .head {
+      font-size: 64px;
+      line-height: 1.06;
+      color: #eaeeff;
+      margin-top: 16px;
+    }
+    #root .side .note {
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      color: #7f92c9;
+      margin-top: 18px;
+    }
+
+    /* — left: bluetooth mesh — */
+    #root .mesh { position: absolute; left: 150px; top: 470px; width: 720px; height: 380px; }
+    #root .hub {
+      position: absolute;
+      left: 320px;
+      top: 150px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 32%, #2b3a68, #17203f);
+      border: 2px solid #627eea;
+      box-shadow: 0 0 26px rgba(98, 126, 234, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #eaeeff;
+    }
+    #root .peer {
+      position: absolute;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #1b2548;
+      border: 2px solid rgba(138, 160, 245, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #eaeeff;
+    }
+    #root .peer.p1 { left: 92px; top: 40px; }
+    #root .peer.p2 { left: 92px; top: 262px; }
+    #root .peer.p3 { left: 560px; top: 44px; }
+    #root .peer.p4 { left: 566px; top: 258px; }
+    #root .ring {
+      position: absolute;
+      left: 290px;
+      top: 120px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 2px solid rgba(98, 126, 234, 0.55);
+    }
+    #root .link {
+      position: absolute;
+      height: 2px;
+      transform-box: border-box;
+      background: linear-gradient(90deg, rgba(98, 126, 234, 0.15), rgba(98, 126, 234, 0.85));
+      transform-origin: 0% 50%;
+    }
+
+    /* — right: the duel code — */
+    #root .codecard {
+      position: absolute;
+      left: 1050px;
+      top: 486px;
+      width: 560px;
+      border: 2px solid rgba(232, 184, 75, 0.5);
+      border-radius: 18px;
+      background: rgba(232, 184, 75, 0.06);
+      padding: 34px 40px 38px;
+    }
+    #root .codecard .cl {
+      font-size: 22px;
+      letter-spacing: 0.26em;
+      color: #7f92c9;
+    }
+    #root .codecard .code {
+      font-size: 128px;
+      line-height: 1;
+      color: #e8b84b;
+      margin-top: 10px;
+    }
+    #root .codecard .cnote {
+      font-size: 22px;
+      letter-spacing: 0.05em;
+      color: #7f92c9;
+      margin-top: 16px;
+    }
+    #root .globe {
+      position: absolute;
+      left: 1666px;
+      top: 520px;
+      font-size: 96px;
+      opacity: 0.9;
+    }
+
+    /* the shared bottom line */
+    #root .samepot {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 900px;
+      text-align: center;
+      font-size: 44px;
+      letter-spacing: 0.16em;
+      color: #eaeeff;
+    }
+    #root .samepot .em { color: #627eea; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="06-duels"
+    data-start="0"
+    data-duration="6.751"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="ground clip" data-start="0" data-duration="6.251" data-track-index="0"></div>
+    <div class="grid clip" data-start="0" data-duration="6.251" data-track-index="1"></div>
+    <div class="vignette clip" data-start="0" data-duration="6.251" data-track-index="2"></div>
+    <div class="hairline top clip" data-start="0" data-duration="6.251" data-track-index="3"></div>
+    <div class="hairline bottom clip" data-start="0" data-duration="6.251" data-track-index="4"></div>
+
+    <div class="micro clip" data-start="0.1" data-duration="6.151" data-track-index="5">
+      <span class="dot">●</span>&nbsp; DUELS · TWO WAYS IN
+    </div>
+
+    <div class="split clip" id="split" data-start="0.3" data-duration="5.951" data-track-index="6"></div>
+
+    <!-- LEFT — bluetooth -->
+    <div class="side left clip" id="sideL" data-start="0.4" data-duration="5.851" data-track-index="7">
+      <div class="kicker">SAME COUCH</div>
+      <div class="head">FIND THEM OVER<br />BLUETOOTH</div>
+      <div class="note">no server. no internet.</div>
+    </div>
+
+    <div class="mesh clip" id="mesh" data-start="1.0" data-duration="5.251" data-track-index="8">
+      <div class="ring" id="ring"></div>
+      <div class="hub" id="hub">◎</div>
+      <div class="link l1" id="l1" style="left: 360px; top: 190px; width: 268px; transform: rotate(-153.1deg);"></div>
+      <div class="link l2" id="l2" style="left: 360px; top: 190px; width: 260px; transform: rotate(157.1deg);"></div>
+      <div class="link l3" id="l3" style="left: 360px; top: 190px; width: 257px; transform: rotate(-27.1deg);"></div>
+      <div class="link l4" id="l4" style="left: 360px; top: 190px; width: 254px; transform: rotate(22.4deg);"></div>
+      <div class="peer p1" id="pr1">◎</div>
+      <div class="peer p2" id="pr2">◎</div>
+      <div class="peer p3" id="pr3">◎</div>
+      <div class="peer p4" id="pr4">◎</div>
+    </div>
+
+    <!-- RIGHT — the code -->
+    <div class="side right clip" id="sideR" data-start="2.6" data-duration="3.651" data-track-index="9">
+      <div class="kicker">ANYWHERE ELSE</div>
+      <div class="head">SHARE A<br />DUEL CODE</div>
+      <div class="note">they type it. they&rsquo;re in.</div>
+    </div>
+
+    <div class="codecard clip" id="codecard" data-start="3.2" data-duration="3.051" data-track-index="10">
+      <div class="cl">DUEL CODE</div>
+      <div class="code" id="code">#6</div>
+      <div class="cnote">join the same pot from anywhere</div>
+    </div>
+    <div class="globe clip" id="globe" data-start="3.5" data-duration="2.751" data-track-index="11">🌐</div>
+
+    <div class="samepot clip" id="samepot" data-start="5.0" data-duration="1.251" data-track-index="12">
+      ONE POT. <span class="em">EITHER WAY.</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(".grid", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo(".hairline", { scaleX: 0, transformOrigin: "50% 50%" }, { scaleX: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo(".micro", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo("#split", { scaleY: 0, opacity: 0 }, { scaleY: 1, opacity: 1, duration: 0.7, ease: "power3.out" }, 0.3);
+
+      // left — the room finds itself
+      tl.fromTo("#sideL", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.4);
+      tl.fromTo("#hub", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2)" }, 1.0);
+      // the advertise ring pulses outward, twice
+      tl.fromTo("#ring", { scale: 0.55, opacity: 0.9 }, { scale: 2.1, opacity: 0, duration: 1.3, ease: "power2.out" }, 1.2);
+      tl.fromTo("#ring", { scale: 0.55, opacity: 0.9 }, { scale: 2.1, opacity: 0, duration: 1.3, ease: "power2.out" }, 2.0);
+      // peers answer one by one, each with its link
+      tl.fromTo("#pr1", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2.4)" }, 1.5);
+      tl.fromTo("#l1", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 1.5);
+      tl.fromTo("#pr3", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2.4)" }, 1.75);
+      tl.fromTo("#l3", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 1.75);
+      tl.fromTo("#pr2", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2.4)" }, 2.0);
+      tl.fromTo("#l2", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 2.0);
+      tl.fromTo("#pr4", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2.4)" }, 2.25);
+      tl.fromTo("#l4", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power2.out" }, 2.25);
+
+      // right — the code
+      tl.fromTo("#sideR", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 2.6);
+      tl.fromTo("#codecard", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }, 3.2);
+      tl.fromTo("#code", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.8)" }, 3.4);
+      tl.fromTo("#globe", { opacity: 0, scale: 0.7 }, { opacity: 0.9, scale: 1, duration: 0.5, ease: "power2.out" }, 3.5);
+      tl.to("#globe", { rotate: 12, duration: 1.6, ease: "sine.inOut" }, 4.0);
+
+      // both roads meet
+      tl.fromTo("#samepot", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 5.0);
+
+      window.__timelines["06-duels"] = tl;
+    })();
+  </script>
+</template>

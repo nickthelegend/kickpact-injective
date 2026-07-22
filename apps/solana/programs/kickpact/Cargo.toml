@@ -1,0 +1,21 @@
+[package]
+name = "kickpact"
+version = "1.0.0"
+description = "Kickpact — World Cup prediction pools settled trustlessly by CPI into TxLINE's validateStatV2"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "kickpact"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = "0.32.1"

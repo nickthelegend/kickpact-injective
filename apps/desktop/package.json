@@ -1,0 +1,67 @@
+{
+  "name": "kickpact-desktop",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Kickpact for desktop \u2014 World Cup pots on Solana, settled by TxLINE proofs.",
+  "main": "main.js",
+  "scripts": {
+    "export": "cd ../mobile && npx expo export --platform web --output-dir ../desktop/web",
+    "start": "npm run export && electron .",
+    "dist": "npm run export && electron-builder --mac --publish never",
+    "dist:all": "npm run export && electron-builder --mac --win --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "io.kickpact.desktop",
+    "productName": "Kickpact",
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.sports",
+      "identity": null
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "maintainer": "Kickpact"
+    },
+    "publish": null,
+    "artifactName": "Kickpact-${version}-${os}-${arch}.${ext}"
+  }
+}

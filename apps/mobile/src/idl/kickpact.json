@@ -1,0 +1,1537 @@
+{
+  "address": "4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa",
+  "metadata": {
+    "name": "kickpact",
+    "version": "1.0.0",
+    "spec": "0.1.0",
+    "description": "Kickpact — World Cup prediction pools settled trustlessly by CPI into TxLINE's validateStatV2"
+  },
+  "instructions": [
+    {
+      "name": "claim",
+      "docs": [
+        "Winners split the pot equally; when nobody called it, every member",
+        "takes their stake back. Self-serve — the program owes, nobody pays."
+      ],
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_pool",
+      "docs": [
+        "Open a pool on a TxLINE fixture. `deadline_ms` is the join cutoff and",
+        "`kickoff_ms` the fixture's real StartTime (epoch ms, straight from the",
+        "TxLINE fixture record) — settlement finality is anchored to kickoff,",
+        "joining to the deadline. Normal pools set both to StartTime."
+      ],
+      "discriminator": [
+        233,
+        146,
+        209,
+        142,
+        207,
+        104,
+        64,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.next_pool_id",
+                "account": "Config"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "config.next_pool_id",
+                "account": "Config"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "fixture_id",
+          "type": "i64"
+        },
+        {
+          "name": "stake",
+          "type": "u64"
+        },
+        {
+          "name": "deadline_ms",
+          "type": "i64"
+        },
+        {
+          "name": "kickoff_ms",
+          "type": "i64"
+        },
+        {
+          "name": "pick",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "faucet",
+      "docs": [
+        "Testnet faucet — anyone mints up to 1,000 kUSD per call."
+      ],
+      "discriminator": [
+        0,
+        98,
+        59,
+        30,
+        144,
+        142,
+        113,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint_auth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "One-time: create the demo kUSD mint (6 dp) + the pool registry."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint_auth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "join_pool",
+      "docs": [
+        "Join an open pool before kickoff with your own pick."
+      ],
+      "discriminator": [
+        14,
+        65,
+        62,
+        16,
+        116,
+        17,
+        195,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pick",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "refund_expired",
+      "docs": [
+        "If no valid proof settled the pool within the grace window, members",
+        "reclaim their stakes without anyone's permission."
+      ],
+      "discriminator": [
+        118,
+        153,
+        164,
+        244,
+        40,
+        128,
+        242,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "user_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle",
+      "docs": [
+        "Permissionless settlement. The caller claims an outcome and hands over",
+        "TxLINE's Merkle proof of both final goal counts; the program rebuilds",
+        "the predicate for that claim and CPIs into the oracle. Only the true",
+        "outcome can validate — there is nothing to trust about the caller."
+      ],
+      "discriminator": [
+        175,
+        42,
+        185,
+        87,
+        144,
+        131,
+        102,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily_scores_merkle_roots",
+          "docs": [
+            "for the proof's own epoch day."
+          ]
+        },
+        {
+          "name": "txoracle_program",
+          "address": "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J"
+        }
+      ],
+      "args": [
+        {
+          "name": "outcome",
+          "type": "u8"
+        },
+        {
+          "name": "payload",
+          "type": {
+            "defined": {
+              "name": "StatValidationInput"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Member",
+      "discriminator": [
+        54,
+        19,
+        162,
+        21,
+        29,
+        166,
+        17,
+        198
+      ]
+    },
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PoolSettled",
+      "discriminator": [
+        71,
+        220,
+        136,
+        147,
+        65,
+        185,
+        90,
+        47
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "EventNotActive"
+    },
+    {
+      "code": 6001,
+      "name": "PricesMismatch"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidOddsUpdate"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidSubTreeProof"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidMainTreeProof"
+    },
+    {
+      "code": 6005,
+      "name": "TimeSlotMismatch"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTime"
+    },
+    {
+      "code": 6007,
+      "name": "RootNotAvailable"
+    },
+    {
+      "code": 6008,
+      "name": "AccountDiscriminatorMismatch"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidPda"
+    },
+    {
+      "code": 6010,
+      "name": "TimestampMismatch"
+    },
+    {
+      "code": 6011,
+      "name": "SliceError"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidOwner"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidTimeSlot"
+    },
+    {
+      "code": 6014,
+      "name": "StakeStillLocked"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidRecipient"
+    },
+    {
+      "code": 6016,
+      "name": "ActiveSubscription"
+    },
+    {
+      "code": 6017,
+      "name": "Unauthorized"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidAccountOwner"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidMintAuthority"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidMint"
+    },
+    {
+      "code": 6021,
+      "name": "PredicateFailed"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidFixtureSubTreeProof"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidStatProof"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidStatCombination"
+    },
+    {
+      "code": 6025,
+      "name": "MissingSecondStat"
+    },
+    {
+      "code": 6026,
+      "name": "UnexpectedSecondStat"
+    },
+    {
+      "code": 6027,
+      "name": "Overflow"
+    },
+    {
+      "code": 6028,
+      "name": "TradeNotActive"
+    },
+    {
+      "code": 6029,
+      "name": "InvalidTrader"
+    },
+    {
+      "code": 6030,
+      "name": "WinnerMismatch"
+    },
+    {
+      "code": 6031,
+      "name": "TradeTermsMismatch"
+    },
+    {
+      "code": 6032,
+      "name": "UnauthorizedSettler"
+    },
+    {
+      "code": 6033,
+      "name": "FundsBelowMinimumDeposit"
+    },
+    {
+      "code": 6034,
+      "name": "InsufficientUserBalance"
+    },
+    {
+      "code": 6035,
+      "name": "ZeroAmount"
+    },
+    {
+      "code": 6036,
+      "name": "VaultNotEmpty"
+    },
+    {
+      "code": 6037,
+      "name": "InsufficientVaultBalance"
+    },
+    {
+      "code": 6038,
+      "name": "CalculationError"
+    },
+    {
+      "code": 6039,
+      "name": "InvalidSubscriptionTs"
+    },
+    {
+      "code": 6040,
+      "name": "CannotShortenSubscription"
+    },
+    {
+      "code": 6041,
+      "name": "InvalidWeeks"
+    },
+    {
+      "code": 6042,
+      "name": "InvalidTimeAlignment"
+    },
+    {
+      "code": 6043,
+      "name": "InvalidEpochDayAlignment"
+    },
+    {
+      "code": 6044,
+      "name": "AccountDataTooSmall"
+    },
+    {
+      "code": 6045,
+      "name": "InsufficientLiquidity"
+    },
+    {
+      "code": 6046,
+      "name": "InvalidAmount"
+    },
+    {
+      "code": 6047,
+      "name": "InvalidExpiration"
+    },
+    {
+      "code": 6048,
+      "name": "FixtureMismatch"
+    },
+    {
+      "code": 6049,
+      "name": "PeriodMismatch"
+    },
+    {
+      "code": 6050,
+      "name": "IntentNotActive"
+    },
+    {
+      "code": 6051,
+      "name": "OrderNotYetExpired"
+    },
+    {
+      "code": 6052,
+      "name": "TermsMismatch"
+    },
+    {
+      "code": 6053,
+      "name": "StatKeyMismatch"
+    },
+    {
+      "code": 6054,
+      "name": "InvalidVault"
+    },
+    {
+      "code": 6055,
+      "name": "EquivocationAttempt"
+    },
+    {
+      "code": 6056,
+      "name": "NumericOverflow"
+    },
+    {
+      "code": 6057,
+      "name": "InvalidAccountData"
+    },
+    {
+      "code": 6058,
+      "name": "RateLimitExceeded"
+    },
+    {
+      "code": 6059,
+      "name": "InvalidServiceLevelId"
+    },
+    {
+      "code": 6060,
+      "name": "InitialRowsLimitExceeded"
+    },
+    {
+      "code": 6061,
+      "name": "MissingStat"
+    },
+    {
+      "code": 6062,
+      "name": "ProofTooLarge"
+    },
+    {
+      "code": 6063,
+      "name": "TradeTooSmall"
+    },
+    {
+      "code": 6064,
+      "name": "MaxRowsLimitExceeded"
+    },
+    {
+      "code": 6065,
+      "name": "UnauthorizedAdmin"
+    },
+    {
+      "code": 6066,
+      "name": "InvalidAccount"
+    },
+    {
+      "code": 6067,
+      "name": "MissingSummary"
+    },
+    {
+      "code": 6068,
+      "name": "MissingProof"
+    },
+    {
+      "code": 6069,
+      "name": "TooManyStats"
+    },
+    {
+      "code": 6070,
+      "name": "DuplicateStatCoverage"
+    },
+    {
+      "code": 6071,
+      "name": "IncompleteStatCoverage"
+    },
+    {
+      "code": 6072,
+      "name": "MissingDistancePredicate"
+    },
+    {
+      "code": 6073,
+      "name": "IndexOutOfBounds"
+    },
+    {
+      "code": 6074,
+      "name": "StatNotZero"
+    },
+    {
+      "code": 6075,
+      "name": "LengthMismatch"
+    },
+    {
+      "code": 6076,
+      "name": "InvalidMultiproof"
+    },
+    {
+      "code": 6077,
+      "name": "MissingProofNode"
+    },
+    {
+      "code": 6078,
+      "name": "InvalidProofPath"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_pool_id",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "u64"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "pick",
+            "type": "u8"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "fixture_id",
+            "type": "i64"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "deadline_ms",
+            "type": "i64"
+          },
+          {
+            "name": "kickoff_ms",
+            "type": "i64"
+          },
+          {
+            "name": "pick_counts",
+            "type": {
+              "array": [
+                "u16",
+                3
+              ]
+            }
+          },
+          {
+            "name": "member_count",
+            "type": "u16"
+          },
+          {
+            "name": "settled",
+            "type": "bool"
+          },
+          {
+            "name": "result",
+            "type": "u8"
+          },
+          {
+            "name": "winners",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "u64"
+          },
+          {
+            "name": "fixture_id",
+            "type": "i64"
+          },
+          {
+            "name": "result",
+            "type": "u8"
+          },
+          {
+            "name": "winners",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProofNode",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "is_right_sibling",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreStat",
+      "docs": [
+        "The on-chain representation of a single, provable key-value statistic.",
+        "This is the leaf of the inner-most Merkle tree."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "u32"
+          },
+          {
+            "name": "value",
+            "type": "i32"
+          },
+          {
+            "name": "period",
+            "type": "i32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoresBatchSummary",
+      "docs": [
+        "The summary for a single fixture's scores events within a 5-minute batch.",
+        "This contains the root of the sub-tree of all events for that fixture."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fixture_id",
+            "type": "i64"
+          },
+          {
+            "name": "update_stats",
+            "type": {
+              "defined": {
+                "name": "ScoresUpdateStats"
+              }
+            }
+          },
+          {
+            "name": "events_sub_tree_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoresUpdateStats",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "update_count",
+            "type": "i32"
+          },
+          {
+            "name": "min_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "max_timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StatLeaf",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "stat",
+            "type": {
+              "defined": {
+                "name": "ScoreStat"
+              }
+            }
+          },
+          {
+            "name": "stat_proof",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ProofNode"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "StatValidationInput",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ts",
+            "type": "i64"
+          },
+          {
+            "name": "fixture_summary",
+            "type": {
+              "defined": {
+                "name": "ScoresBatchSummary"
+              }
+            }
+          },
+          {
+            "name": "fixture_proof",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ProofNode"
+                }
+              }
+            }
+          },
+          {
+            "name": "main_tree_proof",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ProofNode"
+                }
+              }
+            }
+          },
+          {
+            "name": "event_stat_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "stats",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "StatLeaf"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

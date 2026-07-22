@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Kickpact",
+    "slug": "kickpact",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "kickpact",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "io.kickpact.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1b2548",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH_ADVERTISE",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.NEARBY_WIFI_DEVICES"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Kickpact uses the camera to scan a friend's pact or duel QR code so you can join their escrow."
+        }
+      ],
+      [
+        "expo-nearby-connections",
+        {
+          "bluetoothUsagePermissionText": "Kickpact uses Bluetooth to find friends nearby for a duel.",
+          "localNetworkUsagePermissionText": "Kickpact uses the local network to connect with friends nearby."
+        }
+      ],
+      "expo-apple-authentication",
+      "expo-web-browser"
+    ]
+  }
+}
