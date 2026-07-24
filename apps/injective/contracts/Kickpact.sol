@@ -16,15 +16,20 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  * signature over them, and the contract settles.
  *
  * There is no on-chain sports feed on Injective, so the Solana build's CPI into
- * TxLINE's Merkle-proof oracle has no analogue. Instead a known `oracleSigner`
- * attests to FACTS — the raw final goals — via an EIP-712 signature, and the
- * contract DERIVES the outcome from those goals on-chain. So the signer never
- * chooses who wins; it only reports the score, exactly as TxLINE's proof did.
- * The signature is bound to the fixture, not the pool, so one attestation
- * settles every pool on that match. This reintroduces a single trusted signer
- * (an honest weakening vs. the Solana Merkle proof) — mitigated by the
- * permissionless `refundExpired` escape hatch and upgradable to an N-of-M
- * signer set. No custodian, no admin key over funds.
+ * TxLINE's Merkle-proof oracle has no analogue. Instead a fixed set of oracle
+ * keys attests to FACTS — the raw final goals — via EIP-712 signatures, and the
+ * contract DERIVES the outcome from those goals on-chain. So no signer ever
+ * chooses who wins; they only report the score, exactly as TxLINE's proof did.
+ *
+ * Settlement is M-OF-N: `threshold` independent signers must sign the SAME
+ * (fixtureId, homeGoals, awayGoals, ts) before a pool can settle, so no single
+ * compromised or dishonest key can move funds — the remaining honest signers
+ * simply never co-sign a false score. Signatures are bound to the fixture, not
+ * the pool, so one attestation set settles every pool on that match, and anyone
+ * may relay it. If no valid set ever arrives, the permissionless
+ * `refundExpired` escape hatch returns every stake.
+ *
+ * No custodian, no admin key over funds, and no single trusted oracle.
  *
  * Outcome encoding matches every other Kickpact build: 1 = home, 2 = draw,
  * 3 = away.
@@ -42,8 +47,12 @@ contract Kickpact is EIP712, ReentrancyGuard {
         keccak256("Result(uint64 fixtureId,uint8 homeGoals,uint8 awayGoals,uint64 ts)");
 
     IERC20 public immutable kusd;
-    /// The key whose signature over a fixture's final goals the contract trusts.
-    address public immutable oracleSigner;
+
+    /// The oracle keys whose signatures over a fixture's final goals count, and
+    /// how many of them must agree before a pool can settle (M-of-N).
+    address[] private _oracleSigners;
+    mapping(address => bool) public isOracleSigner;
+    uint256 public immutable threshold;
 
     uint256 public nextPoolId = 1;
 
@@ -104,10 +113,31 @@ contract Kickpact is EIP712, ReentrancyGuard {
     error NotFinal();
     error BadSignature();
     error GraceNotOver();
+    error BadThreshold();
+    error BadSigner();
+    error NotEnoughSignatures();
+    error UnsortedOrDuplicateSigner();
 
-    constructor(IERC20 _kusd, address _oracleSigner) EIP712("Kickpact", "1") {
+    constructor(IERC20 _kusd, address[] memory signers, uint256 _threshold) EIP712("Kickpact", "1") {
+        if (_threshold == 0 || _threshold > signers.length) revert BadThreshold();
+        for (uint256 i = 0; i < signers.length; ++i) {
+            address s = signers[i];
+            if (s == address(0) || isOracleSigner[s]) revert BadSigner();
+            isOracleSigner[s] = true;
+            _oracleSigners.push(s);
+        }
         kusd = _kusd;
-        oracleSigner = _oracleSigner;
+        threshold = _threshold;
+    }
+
+    /// The full oracle signer set (read-only; fixed at deploy).
+    function oracleSigners() external view returns (address[] memory) {
+        return _oracleSigners;
+    }
+
+    /// How many keys are in the set — pair with `threshold` for "M of N".
+    function signerCount() external view returns (uint256) {
+        return _oracleSigners.length;
     }
 
     // ── pools ────────────────────────────────────────────────────────────────
@@ -165,18 +195,21 @@ contract Kickpact is EIP712, ReentrancyGuard {
 
     /**
      * Permissionless settlement. The caller supplies the fixture's final goals
-     * and the oracle's signature over them; the contract verifies the signature,
-     * confirms the result is final, DERIVES the outcome from the goals, and
-     * settles. A lying caller can't forge the signature, and the signer can't
-     * pick a winner — it only reports the score. One valid signature settles
-     * every pool on the fixture.
+     * plus `threshold`-or-more oracle signatures over them (sorted by recovered
+     * signer address, ascending). The contract verifies every signature belongs
+     * to a distinct key in the oracle set, confirms the result is final, DERIVES
+     * the outcome from the goals, and settles.
+     *
+     * A lying caller can't forge signatures, and no signer picks a winner — they
+     * only report the score, and a minority can't settle alone. One valid
+     * signature set settles every pool on the fixture.
      */
     function settle(
         uint256 poolId,
         uint8 homeGoals,
         uint8 awayGoals,
         uint64 ts,
-        bytes calldata signature
+        bytes[] calldata signatures
     ) external {
         Pool storage p = _pools[poolId];
         if (p.id == 0) revert NoSuchPool();
@@ -185,9 +218,18 @@ contract Kickpact is EIP712, ReentrancyGuard {
         // Final: the attested end time must be comfortably past full time.
         if (ts < p.kickoffMs + FULL_TIME_MS) revert NotFinal();
 
-        // Verify the oracle signed exactly these goals for THIS fixture.
+        // M-of-N: `threshold` distinct oracle keys must have signed exactly these
+        // goals for THIS fixture. Recovered addresses must strictly increase,
+        // which makes a duplicate signature impossible without an O(n²) scan.
+        if (signatures.length < threshold) revert NotEnoughSignatures();
         bytes32 digest = hashResult(p.fixtureId, homeGoals, awayGoals, ts);
-        if (ECDSA.recover(digest, signature) != oracleSigner) revert BadSignature();
+        address last = address(0);
+        for (uint256 i = 0; i < signatures.length; ++i) {
+            address signer = ECDSA.recover(digest, signatures[i]);
+            if (signer <= last) revert UnsortedOrDuplicateSigner();
+            if (!isOracleSigner[signer]) revert BadSignature();
+            last = signer;
+        }
 
         // Build the outcome ON-CHAIN from the raw goals — the signer never picks.
         uint8 outcome = homeGoals > awayGoals ? 1 : (homeGoals == awayGoals ? 2 : 3);

@@ -19,12 +19,24 @@ Live and **verified on Blockscout** — click a contract to read its source on-c
 
 | What | Address | Explorer |
 | --- | --- | --- |
-| **Kickpact** — escrow + signed-score settlement | `0x528c3314FbE745e7111a797B6e104408C1d62DB5` | [verified code ↗](https://testnet.blockscout.injective.network/address/0x528c3314FbE745e7111a797B6e104408C1d62DB5?tab=contract) |
-| **KUSD** — kUSD ERC-20 (6 dp, open faucet) | `0x5761A411F5B07160328a71263F71c0EB3Ad17557` | [verified code ↗](https://testnet.blockscout.injective.network/address/0x5761A411F5B07160328a71263F71c0EB3Ad17557?tab=contract) |
-| **Oracle signer** — attests final scores (EIP-712) | `0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a` | [account ↗](https://testnet.blockscout.injective.network/address/0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a) |
+| **Kickpact (kUSD)** — escrow + 2-of-3 signed-score settlement | `0x3D288F2eDAa3D47d46DCFd9C6dEe565DdbFb1590` | [verified code ↗](https://testnet.blockscout.injective.network/address/0x3D288F2eDAa3D47d46DCFd9C6dEe565DdbFb1590?tab=contract) |
+| **Kickpact (native USDC)** — same escrow, USDC stakes | `0xaB6CF93cf6e65a8Becc12BEfC1a4Bc87a5d512E6` | [verified code ↗](https://testnet.blockscout.injective.network/address/0xaB6CF93cf6e65a8Becc12BEfC1a4Bc87a5d512E6?tab=contract) |
+| **KUSD** — demo ERC-20 (6 dp, open faucet) | `0xd23799982F14D8B2D85D3615B16e1F9FFbEe0F58` | [verified code ↗](https://testnet.blockscout.injective.network/address/0xd23799982F14D8B2D85D3615B16e1F9FFbEe0F58?tab=contract) |
+| **Native USDC** — Injective testnet USDC (6 dp) | `0x0C382e685bbeeFE5d3d9C29e29E341fEE8E84C5d` | [token ↗](https://testnet.blockscout.injective.network/address/0x0C382e685bbeeFE5d3d9C29e29E341fEE8E84C5d) |
+| **Oracle signer set** — 2 of these 3 must co-sign a score | `0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a`<br>`0xc9160042dF36d60cF2d9ABed7A6491b18D263e03`<br>`0x9c1DFD70EF2f0bE2575db9d112276aD396f9ee35` | [1 ↗](https://testnet.blockscout.injective.network/address/0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a) · [2 ↗](https://testnet.blockscout.injective.network/address/0xc9160042dF36d60cF2d9ABed7A6491b18D263e03) · [3 ↗](https://testnet.blockscout.injective.network/address/0x9c1DFD70EF2f0bE2575db9d112276aD396f9ee35) |
 | **Deployer** | `0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a` | [account ↗](https://testnet.blockscout.injective.network/address/0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a) |
 
 Need testnet INJ for gas? [testnet.faucet.injective.network](https://testnet.faucet.injective.network/). All addresses are also machine-readable in [`apps/injective/deployments.json`](apps/injective/deployments.json).
+
+**Settlement is 2-of-3 and we prove it on-chain.** `bun run settle:demo` opens a pool, then *first* submits a single signature and shows it rejected, before settling with a real quorum:
+
+```
+oracle quorum: 2-of-3 → 0x02bA…fc9a, 0xc916…3e03
+settle…
+  ✓ 1 signature rejected (threshold is 2)
+  settled with 2 signatures  tx 0xbe402f0f…
+  result=1 (1=home 2=draw 3=away)  winners=1
+```
 
 ---
 
@@ -37,8 +49,8 @@ Kickpact's answer is an escrow that **can't invent a result and can't be argued 
 ```
    friends stake kUSD             match ends              anyone submits the signed score
   ┌─────────────────────┐   ┌────────────────────┐   ┌───────────────────────────────────────┐
-  │ createPool / join   │ → │ oracle signs the   │ → │ settle(poolId, home, away, ts, sig)   │
-  │ (escrow in Kickpact)│   │ final goals (712)  │   │  → recover(sig) == oracleSigner  ✓     │
+  │ createPool / join   │ → │ 2-of-3 oracle keys │ → │ settle(poolId, home, away, ts, sigs[])│
+  │ (escrow in Kickpact)│   │ sign the goals(712)│   │  → 2 distinct signers recovered  ✓     │
   └─────────────────────┘   └────────────────────┘   │  → outcome derived on-chain from goals │
                                                       │  → winners claim, else self-serve      │
                                                       └───────────────────────────────────────┘
@@ -48,14 +60,16 @@ The settle caller is **untrusted by design**: they can't forge the oracle's sign
 
 ### The honest part of the trust model
 
-On Solana, Kickpact settled via a CPI into TxLINE's Merkle-proof oracle — the match data was itself anchored on-chain, so *nobody* was trusted. **Injective has no on-chain sports-score feed** (Pyth and Band there are price oracles, not scoreboards). So the "the data decides, not an admin" property is rebuilt from a different root: a known **`oracleSigner`** signs the raw final goals, and the contract derives the outcome.
+On Solana, Kickpact settled via a CPI into TxLINE's Merkle-proof oracle — the match data was itself anchored on-chain, so *nobody* was trusted. **Injective has no on-chain sports-score feed** (Pyth and Band there are price oracles, not scoreboards). So the "the data decides, not an admin" property is rebuilt from a different root: a **fixed set of oracle keys** signs the raw final goals, and the contract derives the outcome.
 
-This is a deliberate, clearly-stated **weakening** vs. the Merkle proof — it reintroduces one trusted signer. We think it's the right pragmatic trade-off, and we bound it tightly:
+This is still weaker than a Merkle proof — you are trusting a quorum of known keys rather than published data — so here is exactly how far the guarantee goes:
 
-1. **The signer reports facts, not winners.** It signs `(fixtureId, homeGoals, awayGoals, ts)`. The winning side is computed on-chain. It cannot settle a pool to a result the score doesn't support.
-2. **Submission is permissionless.** Any wallet can relay the signed score. The signer never touches the pot and never needs gas.
-3. **No funds are ever stranded or admin-controlled.** If the settled outcome had no backers, everyone refunds. If no valid signature ever arrives, a **48-hour grace** opens self-serve `refundExpired`. There is no admin key over funds.
-4. **It upgrades cleanly.** The single `oracleSigner` becomes an N-of-M signer set (or a future on-chain feed) without changing the money flow — `settle` already separates *attesting the score* from *deciding the outcome*.
+1. **Signers report facts, not winners.** They sign `(fixtureId, homeGoals, awayGoals, ts)`. The winning side is computed on-chain. No signature can settle a pool to a result the score doesn't support.
+2. **No single key can settle.** Settlement is **2-of-3**: two distinct members of the signer set must sign the *same* score. One leaked or malicious key is not enough, and duplicates/outsiders are rejected. Raising this to a larger, independently-operated set is a constructor argument, not a redesign.
+3. **Submission is permissionless.** Any wallet can relay a valid signature set. Signers never touch the pot and never need gas.
+4. **No funds are ever stranded or admin-controlled.** If the settled outcome had no backers, everyone refunds. If no valid quorum ever arrives, a **48-hour grace** opens self-serve `refundExpired`. There is no admin key over funds.
+
+**What we are NOT claiming:** the signers are not independent third parties here — for the hackathon build all three keys are ours, so this demonstrates the *mechanism*, not a decentralised signer committee. The security argument only becomes real when the keys are held by separate operators; the contract is already written for that day.
 
 ## What's here
 
@@ -72,10 +86,11 @@ Deployed addresses are written to [`apps/injective/deployments.json`](apps/injec
 
 ## The trust model (what makes it interesting)
 
-1. **The contract can't be sweet-talked.** `settle(poolId, homeGoals, awayGoals, ts, signature)` requires the result to be final (`ts ≥ kickoff + 105 min`), recovers the EIP-712 signature and checks it equals `oracleSigner`, then **builds the outcome from the goals on-chain**. Nothing about the caller is trusted.
-2. **One signature, every pool.** The attestation is bound to the *fixture*, not the pool — one signed score settles every pool on that match, and anyone can relay it.
-3. **No winner? Everyone refunds.** And if no signature ever arrives, a 48-hour grace unlocks self-serve refunds. Funds are never stranded, never admin-controlled.
-4. **Receipts re-verify anywhere.** The app and dashboard pull the `PoolSettled` event and the `settle` calldata, then re-run `verifyTypedData` in the client — you watch the signature recover to the oracle live, on your own device.
+1. **The contract can't be sweet-talked.** `settle(poolId, homeGoals, awayGoals, ts, signatures[])` requires the result to be final (`ts ≥ kickoff + 105 min`), recovers **every** EIP-712 signature, requires `threshold` *distinct* members of the oracle set (recovered addresses must strictly increase, so a duplicate can't pad the count), then **builds the outcome from the goals on-chain**. Nothing about the caller is trusted.
+2. **No single key is load-bearing.** Settlement is **2-of-3**: one compromised or dishonest oracle key cannot settle a pool, because the other two simply never co-sign a false score. The tests prove a lone signature, a duplicated signature, an unsorted set, and an outsider co-signer are all rejected — and that *any* 2 of the 3 keys work, so no individual key is special.
+3. **One quorum, every pool.** The attestation is bound to the *fixture*, not the pool — one signed score settles every pool on that match, and anyone can relay it.
+4. **No winner? Everyone refunds.** And if no signature ever arrives, a 48-hour grace unlocks self-serve refunds. Funds are never stranded, never admin-controlled.
+5. **Receipts re-verify anywhere.** The app and dashboard pull the `PoolSettled` event and the `settle` calldata, then re-run `verifyTypedData` in the client — you watch each signature recover to a member of the oracle set live, on your own device.
 
 ## Injective integration & the new Injective technologies
 
@@ -87,8 +102,8 @@ Here is an honest account of the four highlighted technologies — what we used,
 | --- | --- | --- |
 | **Agent Skills** | ✅ **Yes** | The 20 Injective agent-skills are vendored in [`.claude/skills/`](.claude/skills) and pinned in [`skills-lock.json`](skills-lock.json) (restore with `npx skills experimental_install`). They were the working spec for this port: **`injective-evm-developer`** gave the Hardhat testnet config we ship — chainId `1439`, RPC `k8s.testnet.json-rpc.injective.network`, the Blockscout custom-chain verify block, and the `paris` EVM target that keeps bytecode free of `PUSH0` so it runs regardless of hardfork level. **`injective-faucet`** drove the deployer bootstrap; **`injective-frontend-wallet`** informed the EVM wallet path; **`injective-usdc-integration`** is the reference for the mainnet USDC swap described below. |
 | **MCP Server** | ❌ No | We built against the vendored skills and the EVM JSON-RPC directly, so the Injective MCP server was never connected. `injective-mcp-servers` is vendored for the skills that need it, but nothing in `apps/` calls it. |
-| **USDC (CCTP)** | ❌ No | Stakes use **`KUSD.sol`**, our own ERC-20 (6 dp, open faucet) so anyone can try the app on testnet without acquiring assets. The escrow is token-agnostic — it holds `IERC20` and pulls via `transferFrom` — so pointing it at **native USDC on Injective** (`0xa00C59fF5a080D2b954d0c75e46E22a0c371235a`, also 6 dp) is a constructor argument, not a rewrite. CCTP would then let a user fund a pool from another chain. Not implemented, not claimed. |
-| **x402** | ❌ No | There is no metered/paid API surface in Kickpact — settlement is permissionless and gasless to *request*, so there was nothing for x402 to price. The natural fit would be selling the oracle's signed attestations per-fixture; we did not build it. |
+| **Native USDC** | ✅ **Yes** — with a caveat | A second escrow, [`0xaB6C…12E6`](https://testnet.blockscout.injective.network/address/0xaB6CF93cf6e65a8Becc12BEfC1a4Bc87a5d512E6?tab=contract), is denominated in **native USDC on Injective testnet** (`0x0C38…4C5d`, 6 dp) — same verified code, same oracle set, stake token swapped via the constructor. **What we did *not* build is a CCTP bridge**: no burn-on-source → attestation → mint-on-Injective flow. If the checkbox means "moves USDC cross-chain with CCTP", that is a no; if it means "uses native (CCTP-issued) USDC on Injective", that is a yes, and it's on-chain. |
+| **x402** | ✅ **Yes** | [`apps/injective/attestor`](apps/injective/attestor) serves the oracle's signed score attestations behind **HTTP 402**: `GET /attest/:fixtureId` returns a 402 with x402 payment requirements (price in native USDC), and on a valid `X-PAYMENT` header returns the EIP-712 signatures that `settle()` accepts. An oracle feed is a natural metered resource — you pay per attestation. See that directory's README for exactly which parts of payment verification are implemented and which are not. |
 
 **Why this matters for the trust model:** the one thing we genuinely need from a chain is a cheap, permissionless `settle()` that anyone can call — a keeper, a pool member, or a stranger. Injective's EVM gives us that with sub-cent gas, which is what makes "anyone can settle, and a 48-hour self-serve refund if nobody does" a real guarantee rather than a slogan.
 

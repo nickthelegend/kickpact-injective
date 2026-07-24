@@ -15,11 +15,22 @@ const AWAY = 1
 async function main() {
   const d = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "deployments.json"), "utf8"))
   const [signer] = await ethers.getSigners()
-  const oraclePk = process.env.ORACLE_SIGNER_PRIVATE_KEY!
-  const oracle = new ethers.Wallet(oraclePk)
-  if (oracle.address.toLowerCase() !== d.oracleSigner.toLowerCase()) {
-    throw new Error(`oracle key ${oracle.address} != deployed signer ${d.oracleSigner}`)
+  // Settlement is M-of-N: collect `threshold` keys from the deployed signer set.
+  const set: string[] = (d.oracleSigners ?? []).map((a: string) => a.toLowerCase())
+  const threshold: number = d.threshold ?? 1
+  const oracles = [
+    process.env.ORACLE_SIGNER_PRIVATE_KEY,
+    process.env.ORACLE_SIGNER_2_PRIVATE_KEY,
+    process.env.ORACLE_SIGNER_3_PRIVATE_KEY,
+  ]
+    .filter((k): k is string => !!k)
+    .map((pk) => new ethers.Wallet(pk))
+    .filter((w) => set.includes(w.address.toLowerCase()))
+  if (oracles.length < threshold) {
+    throw new Error(`need ${threshold} oracle keys from the deployed set, hold ${oracles.length}`)
   }
+  const quorum = oracles.slice(0, threshold)
+  console.log(`oracle quorum: ${threshold}-of-${set.length} → ${quorum.map((o) => o.address).join(", ")}`)
 
   const kusd = await ethers.getContractAt("KUSD", d.kusd)
   const kickpact = await ethers.getContractAt("Kickpact", d.kickpact)
@@ -68,11 +79,22 @@ async function main() {
       { name: "ts", type: "uint64" },
     ],
   }
-  const sig = await oracle.signTypedData(domain, types, { fixtureId: FIXTURE, homeGoals: HOME, awayGoals: AWAY, ts: tsMs })
+  // Each oracle signs the SAME goals; settle() needs them sorted by signer.
+  const value = { fixtureId: FIXTURE, homeGoals: HOME, awayGoals: AWAY, ts: tsMs }
+  const signed = await Promise.all(
+    quorum.map(async (o) => ({ signer: o.address, sig: await o.signTypedData(domain, types, value) })),
+  )
+  signed.sort((a, b) => (a.signer.toLowerCase() < b.signer.toLowerCase() ? -1 : 1))
+  const sigs = signed.map((s) => s.sig)
 
   console.log("settle…")
-  const settleHash = await wait(kickpact.settle(poolId, HOME, AWAY, tsMs, sig, gas))
-  console.log(`  settled  tx ${d.explorer}/tx/${settleHash}`)
+  // Prove a lone signature is NOT enough before submitting the real quorum.
+  await kickpact.settle.staticCall(poolId, HOME, AWAY, tsMs, [sigs[0]], gas).then(
+    () => console.log("  !! a single signature was accepted — threshold is not enforced"),
+    () => console.log(`  ✓ 1 signature rejected (threshold is ${threshold})`),
+  )
+  const settleHash = await wait(kickpact.settle(poolId, HOME, AWAY, tsMs, sigs, gas))
+  console.log(`  settled with ${sigs.length} signatures  tx ${d.explorer}/tx/${settleHash}`)
   const p = await kickpact.getPool(poolId)
   console.log(`  result=${p.result} (1=home 2=draw 3=away)  winners=${p.winners}`)
 

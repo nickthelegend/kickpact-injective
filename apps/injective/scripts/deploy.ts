@@ -6,11 +6,19 @@ import { ethers, network } from "hardhat"
 import * as fs from "fs"
 import * as path from "path"
 
-const ORACLE_SIGNER = process.env.ORACLE_SIGNER_ADDRESS
+/** The oracle signer set — settlement needs THRESHOLD of these to agree. */
+const SIGNERS = [
+  process.env.ORACLE_SIGNER_ADDRESS,
+  process.env.ORACLE_SIGNER_2_ADDRESS,
+  process.env.ORACLE_SIGNER_3_ADDRESS,
+].filter((a): a is string => !!a && ethers.isAddress(a))
+const THRESHOLD = BigInt(process.env.ORACLE_THRESHOLD || "2")
+/** Native USDC on Injective testnet — the second escrow's stake token. */
+const USDC = process.env.USDC_ADDRESS
 
 async function main() {
-  if (!ORACLE_SIGNER || !ethers.isAddress(ORACLE_SIGNER)) {
-    throw new Error("Set ORACLE_SIGNER_ADDRESS in .env before deploying")
+  if (SIGNERS.length < Number(THRESHOLD)) {
+    throw new Error(`need ≥${THRESHOLD} oracle signer addresses in .env, found ${SIGNERS.length}`)
   }
   const [deployer] = await ethers.getSigners()
   const bal = await ethers.provider.getBalance(deployer.address)
@@ -44,10 +52,26 @@ async function main() {
   const kusdAddr = await confirm(kusd, "KUSD")
   console.log(`KUSD      ${kusdAddr}`)
 
+  console.log(`oracle set (${THRESHOLD}-of-${SIGNERS.length}): ${SIGNERS.join(", ")}`)
+
   const Kickpact = await ethers.getContractFactory("Kickpact")
-  const kickpact = await Kickpact.deploy(kusdAddr, ORACLE_SIGNER, overrides)
+  const kickpact = await Kickpact.deploy(kusdAddr, SIGNERS, THRESHOLD, overrides)
   const kickpactAddr = await confirm(kickpact, "Kickpact")
-  console.log(`Kickpact  ${kickpactAddr}`)
+  console.log(`Kickpact  ${kickpactAddr}   (stake: kUSD)`)
+
+  // A second escrow denominated in NATIVE USDC on Injective — same code, same
+  // oracle set; the stake token is a constructor argument, nothing else changes.
+  let kickpactUsdcAddr: string | null = null
+  if (USDC && ethers.isAddress(USDC)) {
+    const code = await ethers.provider.getCode(USDC)
+    if (code === "0x") {
+      console.log(`!! no contract at USDC_ADDRESS ${USDC} — skipping the USDC escrow`)
+    } else {
+      const ku = await Kickpact.deploy(USDC, SIGNERS, THRESHOLD, overrides)
+      kickpactUsdcAddr = await confirm(ku, "Kickpact(USDC)")
+      console.log(`Kickpact  ${kickpactUsdcAddr}   (stake: native USDC)`)
+    }
+  }
 
   const out = {
     network: network.name,
@@ -56,7 +80,10 @@ async function main() {
     explorer: "https://testnet.blockscout.injective.network",
     kusd: kusdAddr,
     kickpact: kickpactAddr,
-    oracleSigner: ORACLE_SIGNER,
+    usdc: USDC ?? null,
+    kickpactUsdc: kickpactUsdcAddr,
+    oracleSigners: SIGNERS,
+    threshold: Number(THRESHOLD),
     deployedBy: deployer.address,
   }
   const deploymentsPath = path.join(__dirname, "..", "deployments.json")
@@ -83,6 +110,7 @@ async function main() {
   console.log(`\nexplorer:`)
   console.log(`  ${out.explorer}/address/${kusdAddr}`)
   console.log(`  ${out.explorer}/address/${kickpactAddr}`)
+  if (kickpactUsdcAddr) console.log(`  ${out.explorer}/address/${kickpactUsdcAddr}  (USDC)`)
   console.log(`\nverify:  bun run verify`)
 }
 

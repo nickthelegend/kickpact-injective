@@ -3,8 +3,15 @@
   "chainId": 1439,
   "rpc": "https://k8s.testnet.json-rpc.injective.network/",
   "explorer": "https://testnet.blockscout.injective.network",
-  "kusd": "0x5761A411F5B07160328a71263F71c0EB3Ad17557",
-  "kickpact": "0x528c3314FbE745e7111a797B6e104408C1d62DB5",
-  "oracleSigner": "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a",
+  "kusd": "0xd23799982F14D8B2D85D3615B16e1F9FFbEe0F58",
+  "kickpact": "0x3D288F2eDAa3D47d46DCFd9C6dEe565DdbFb1590",
+  "usdc": "0x0C382e685bbeeFE5d3d9C29e29E341fEE8E84C5d",
+  "kickpactUsdc": "0xaB6CF93cf6e65a8Becc12BEfC1a4Bc87a5d512E6",
+  "oracleSigners": [
+    "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a",
+    "0xc9160042dF36d60cF2d9ABed7A6491b18D263e03",
+    "0x9c1DFD70EF2f0bE2575db9d112276aD396f9ee35"
+  ],
+  "threshold": 2,
   "deployedBy": "0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a"
 }

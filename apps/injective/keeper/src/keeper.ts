@@ -20,13 +20,20 @@ const FULL_TIME_MS = 105 * 60 * 1000
 const d = deployments()
 
 if (!d.kickpact) throw new Error("deployments.json has no kickpact address — deploy first")
-const oraclePk = process.env.ORACLE_SIGNER_PRIVATE_KEY
+// Every oracle key we hold. Settlement is M-of-N, so the keeper needs at least
+// `threshold` of them; in production these would live on separate machines and
+// the keeper would collect their signatures over the wire.
+const oraclePks = [
+  process.env.ORACLE_SIGNER_PRIVATE_KEY,
+  process.env.ORACLE_SIGNER_2_PRIVATE_KEY,
+  process.env.ORACLE_SIGNER_3_PRIVATE_KEY,
+].filter((k): k is string => !!k)
 const relayerPk = process.env.RELAYER_PRIVATE_KEY || process.env.PRIVATE_KEY
-if (!oraclePk) throw new Error("set ORACLE_SIGNER_PRIVATE_KEY")
+if (!oraclePks.length) throw new Error("set ORACLE_SIGNER_PRIVATE_KEY (and _2/_3 for the full set)")
 if (!relayerPk) throw new Error("set RELAYER_PRIVATE_KEY or PRIVATE_KEY (pays gas to submit settle)")
 
 const provider = new ethers.JsonRpcProvider(d.rpc, undefined, { staticNetwork: true })
-const oracle = new ethers.Wallet(oraclePk)
+const oracles = oraclePks.map((pk) => new ethers.Wallet(pk))
 const relayer = new ethers.Wallet(relayerPk, provider)
 const kickpact = new ethers.Contract(d.kickpact, kickpactAbi(), relayer)
 const GAS = {
@@ -34,10 +41,23 @@ const GAS = {
   gasLimit: BigInt(process.env.INJ_GAS_LIMIT || "500000"),
 }
 
-if (oracle.address.toLowerCase() !== d.oracleSigner.toLowerCase()) {
-  console.warn(`⚠ oracle key ${oracle.address} != deployed signer ${d.oracleSigner} — signatures will be rejected`)
+// Only the keys that are actually in the deployed signer set can contribute.
+const deployedSet = (d.oracleSigners ?? []).map((a: string) => a.toLowerCase())
+const threshold: number = d.threshold ?? 1
+const usable = oracles.filter((o) => deployedSet.includes(o.address.toLowerCase()))
+for (const o of oracles) {
+  if (!deployedSet.includes(o.address.toLowerCase())) {
+    console.warn(`⚠ key ${o.address} is not in the deployed signer set — ignoring it`)
+  }
 }
-console.log(`[keeper] oracle ${oracle.address}  relayer ${relayer.address}  → ${d.kickpact}`)
+if (usable.length < threshold) {
+  throw new Error(
+    `need ${threshold} oracle keys from the deployed set, hold ${usable.length} (set ORACLE_SIGNER_2/3_PRIVATE_KEY)`,
+  )
+}
+console.log(
+  `[keeper] oracles ${usable.length}/${deployedSet.length} (threshold ${threshold})  relayer ${relayer.address}  → ${d.kickpact}`,
+)
 
 const args = process.argv.slice(2)
 const flag = (name: string) => {
@@ -59,7 +79,7 @@ async function waitMined(tx: any): Promise<string> {
 
 async function settlePool(poolId: bigint, s: SignedResult) {
   try {
-    const tx = await kickpact.settle(poolId, s.homeGoals, s.awayGoals, s.ts, s.signature, GAS)
+    const tx = await kickpact.settle(poolId, s.homeGoals, s.awayGoals, s.ts, s.signatures, GAS)
     const hash = await waitMined(tx)
     const p = await kickpact.getPool(poolId)
     console.log(`  ✔ pool #${poolId} settled ${s.homeGoals}-${s.awayGoals} → result=${p.result} winners=${p.winners}  ${d.explorer}/tx/${hash}`)
@@ -97,7 +117,7 @@ async function sweep() {
       if (!p.settled && Number(p.fixtureId) === fixtureId) pools.push(BigInt(id))
     }
     if (!pools.length) return console.log(`no open pools on fixture ${fixtureId}`)
-    const s = await signResult(oracle, d.chainId, d.kickpact, fixtureId, home, away, Date.now())
+    const s = await signResult(usable.slice(0, threshold), d.chainId, d.kickpact, fixtureId, home, away, Date.now())
     console.log(`manual settle fixture ${fixtureId} = ${home}-${away} across ${pools.length} pool(s)`)
     for (const id of pools) await settlePool(id, s)
     return
@@ -111,7 +131,7 @@ async function sweep() {
       console.log(`fixture ${fixtureId}: no final score yet (${pools.length} pool(s) waiting)`)
       continue
     }
-    const s = await signResult(oracle, d.chainId, d.kickpact, fixtureId, score.home, score.away, Math.max(score.tsMs, Date.now()))
+    const s = await signResult(usable.slice(0, threshold), d.chainId, d.kickpact, fixtureId, score.home, score.away, Math.max(score.tsMs, Date.now()))
     console.log(`fixture ${fixtureId} = ${score.home}-${score.away} → settling ${pools.length} pool(s)`)
     for (const id of pools) await settlePool(id, s)
   }

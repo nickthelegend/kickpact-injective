@@ -11,9 +11,22 @@ async function main() {
     console.log("KUSD verify:", e.message)
   }
   try {
-    await run("verify:verify", { address: d.kickpact, constructorArguments: [d.kusd, d.oracleSigner] })
+    await run("verify:verify", {
+      address: d.kickpact,
+      constructorArguments: [d.kusd, d.oracleSigners, d.threshold],
+    })
   } catch (e: any) {
     console.log("Kickpact verify:", e.message)
+  }
+  if (d.kickpactUsdc && d.usdc) {
+    try {
+      await run("verify:verify", {
+        address: d.kickpactUsdc,
+        constructorArguments: [d.usdc, d.oracleSigners, d.threshold],
+      })
+    } catch (e: any) {
+      console.log("Kickpact(USDC) verify:", e.message)
+    }
   }
 }
 

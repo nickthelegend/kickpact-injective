@@ -28,18 +28,51 @@ async function signResult(
   return oracle.signTypedData(domain, types, { fixtureId, homeGoals: home, awayGoals: away, ts })
 }
 
+/**
+ * An M-of-N attestation: sign with each oracle and return the signatures sorted
+ * by signer address ascending, which is the order `settle` requires (that
+ * ordering is what makes duplicates impossible without an O(n²) scan).
+ */
+async function attest(
+  oracles: HDNodeWallet[],
+  verifyingContract: string,
+  fixtureId: bigint,
+  home: number,
+  away: number,
+  ts: bigint,
+): Promise<string[]> {
+  const signed = await Promise.all(
+    oracles.map(async (o) => ({
+      addr: o.address.toLowerCase(),
+      sig: await signResult(o, verifyingContract, fixtureId, home, away, ts),
+    })),
+  )
+  return signed.sort((a, b) => (a.addr < b.addr ? -1 : 1)).map((s) => s.sig)
+}
+
 describe("Kickpact", () => {
   async function deploy() {
     const [deployer, alice, bob, carol] = await ethers.getSigners()
-    // A deterministic oracle wallet we control the private key for.
-    const oracle = ethers.Wallet.createRandom().connect(ethers.provider)
+    // Three independent oracle wallets; settlement needs 2 of them to agree.
+    const oracles = [
+      ethers.Wallet.createRandom(),
+      ethers.Wallet.createRandom(),
+      ethers.Wallet.createRandom(),
+    ]
+    const THRESHOLD = 2n
+    const oracle = oracles[0] // a lone signer — never enough on its own
+    const rogue = ethers.Wallet.createRandom() // not in the set
 
     const KUSD = await ethers.getContractFactory("KUSD")
     const kusd = await KUSD.deploy()
     await kusd.waitForDeployment()
 
     const Kickpact = await ethers.getContractFactory("Kickpact")
-    const kickpact = await Kickpact.deploy(await kusd.getAddress(), oracle.address)
+    const kickpact = await Kickpact.deploy(
+      await kusd.getAddress(),
+      oracles.map((o) => o.address),
+      THRESHOLD,
+    )
     await kickpact.waitForDeployment()
 
     // Fund players with kUSD + approve the escrow.
@@ -53,7 +86,11 @@ describe("Kickpact", () => {
     const deadlineMs = kickoffMs
     const finalTs = kickoffMs + FULL_TIME_MS + 60_000n
 
-    return { deployer, alice, bob, carol, oracle, kusd, kickpact, kickoffMs, deadlineMs, finalTs }
+    return {
+      deployer, alice, bob, carol,
+      oracle, oracles, rogue, THRESHOLD,
+      kusd, kickpact, kickoffMs, deadlineMs, finalTs,
+    }
   }
 
   it("faucet mints kUSD and enforces the 1,000 cap", async () => {
@@ -97,13 +134,13 @@ describe("Kickpact", () => {
   })
 
   it("settles on a valid oracle signature and derives the outcome on-chain", async () => {
-    const { kickpact, oracle, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, oracles, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     await kickpact.connect(alice).createPool(777n, 10n * ONE_KUSD, deadlineMs, kickoffMs, 1) // alice: home
     await kickpact.connect(bob).joinPool(1, 3) // bob: away
 
     // 2–1 → home wins → outcome 1. The oracle signs the raw goals only.
-    const sig = await signResult(oracle, addr, 777n, 2, 1, finalTs)
+    const sig = await attest(oracles.slice(0, 2), addr, 777n, 2, 1, finalTs)
     await expect(kickpact.settle(1, 2, 1, finalTs, sig))
       .to.emit(kickpact, "PoolSettled")
       .withArgs(1n, 777n, 1, 1n, 2, 1)
@@ -114,43 +151,98 @@ describe("Kickpact", () => {
   })
 
   it("derives a draw and an away win from the signed goals", async () => {
-    const { kickpact, oracle, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     // draw: 1–1 on fixture A
     await kickpact.connect(alice).createPool(1n, ONE_KUSD, deadlineMs, kickoffMs, 2)
-    await kickpact.settle(1, 1, 1, finalTs, await signResult(oracle, addr, 1n, 1, 1, finalTs))
+    await kickpact.settle(1, 1, 1, finalTs, await attest(oracles.slice(0, 2), addr, 1n, 1, 1, finalTs))
     expect((await kickpact.getPool(1)).result).to.equal(2)
     // away: 0–2 on fixture B
     await kickpact.connect(alice).createPool(2n, ONE_KUSD, deadlineMs, kickoffMs, 3)
-    await kickpact.settle(2, 0, 2, finalTs, await signResult(oracle, addr, 2n, 0, 2, finalTs))
+    await kickpact.settle(2, 0, 2, finalTs, await attest(oracles.slice(0, 2), addr, 2n, 0, 2, finalTs))
     expect((await kickpact.getPool(2)).result).to.equal(3)
   })
 
   it("rejects a forged signer and a non-final timestamp", async () => {
-    const { kickpact, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, oracles, rogue, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     await kickpact.connect(alice).createPool(9n, ONE_KUSD, deadlineMs, kickoffMs, 1)
-    // wrong signer (bob is not the oracle)
-    const forged = await signResult(bob, addr, 9n, 2, 0, finalTs)
+    // an outsider co-signing with a real oracle is still not a valid set
+    const forged = await attest([oracles[0], rogue], addr, 9n, 2, 0, finalTs)
     await expect(kickpact.settle(9, 2, 0, finalTs, forged)).to.be.revertedWithCustomError(kickpact, "NoSuchPool")
     await expect(kickpact.settle(1, 2, 0, finalTs, forged)).to.be.revertedWithCustomError(kickpact, "BadSignature")
   })
 
+  it("needs the threshold: one signer alone can never settle", async () => {
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const addr = await kickpact.getAddress()
+    await kickpact.connect(alice).createPool(31n, ONE_KUSD, deadlineMs, kickoffMs, 1)
+    // a single honest oracle — below threshold
+    const lone = await attest([oracles[0]], addr, 31n, 2, 0, finalTs)
+    await expect(kickpact.settle(1, 2, 0, finalTs, lone)).to.be.revertedWithCustomError(kickpact, "NotEnoughSignatures")
+    await expect(kickpact.settle(1, 2, 0, finalTs, [])).to.be.revertedWithCustomError(kickpact, "NotEnoughSignatures")
+    // add a second independent key and it settles
+    await kickpact.settle(1, 2, 0, finalTs, await attest(oracles.slice(0, 2), addr, 31n, 2, 0, finalTs))
+    expect((await kickpact.getPool(1)).result).to.equal(1)
+  })
+
+  it("rejects the same signer twice (a duplicate can't reach the threshold)", async () => {
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const addr = await kickpact.getAddress()
+    await kickpact.connect(alice).createPool(32n, ONE_KUSD, deadlineMs, kickoffMs, 1)
+    const one = await signResult(oracles[0], addr, 32n, 2, 0, finalTs)
+    await expect(kickpact.settle(1, 2, 0, finalTs, [one, one])).to.be.revertedWithCustomError(
+      kickpact,
+      "UnsortedOrDuplicateSigner",
+    )
+  })
+
+  it("rejects an unsorted signature set", async () => {
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const addr = await kickpact.getAddress()
+    await kickpact.connect(alice).createPool(33n, ONE_KUSD, deadlineMs, kickoffMs, 1)
+    const sorted = await attest(oracles.slice(0, 2), addr, 33n, 2, 0, finalTs)
+    await expect(
+      kickpact.settle(1, 2, 0, finalTs, [sorted[1], sorted[0]]),
+    ).to.be.revertedWithCustomError(kickpact, "UnsortedOrDuplicateSigner")
+  })
+
+  it("exposes the signer set and threshold", async () => {
+    const { kickpact, oracles, THRESHOLD } = await loadFixture(deploy)
+    expect(await kickpact.threshold()).to.equal(THRESHOLD)
+    expect(await kickpact.signerCount()).to.equal(BigInt(oracles.length))
+    const set = await kickpact.oracleSigners()
+    for (const o of oracles) expect(set).to.include(o.address)
+    expect(await kickpact.isOracleSigner(oracles[0].address)).to.equal(true)
+  })
+
+  it("any 2 of the 3 keys can settle — no single key is load-bearing", async () => {
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const addr = await kickpact.getAddress()
+    // pool 1 settled by keys {0,2}; pool 2 by {1,2} — signer 0 never participates
+    await kickpact.connect(alice).createPool(34n, ONE_KUSD, deadlineMs, kickoffMs, 1)
+    await kickpact.settle(1, 2, 0, finalTs, await attest([oracles[0], oracles[2]], addr, 34n, 2, 0, finalTs))
+    await kickpact.connect(alice).createPool(35n, ONE_KUSD, deadlineMs, kickoffMs, 1)
+    await kickpact.settle(2, 2, 0, finalTs, await attest([oracles[1], oracles[2]], addr, 35n, 2, 0, finalTs))
+    expect((await kickpact.getPool(1)).settled).to.equal(true)
+    expect((await kickpact.getPool(2)).settled).to.equal(true)
+  })
+
   it("enforces finality before signature checks", async () => {
-    const { kickpact, oracle, alice, kickoffMs, deadlineMs } = await loadFixture(deploy)
+    const { kickpact, oracles, alice, kickoffMs, deadlineMs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     await kickpact.connect(alice).createPool(5n, ONE_KUSD, deadlineMs, kickoffMs, 1)
     const earlyTs = kickoffMs + 60_000n
-    const sig = await signResult(oracle, addr, 5n, 2, 0, earlyTs)
+    const sig = await attest(oracles.slice(0, 2), addr, 5n, 2, 0, earlyTs)
     await expect(kickpact.settle(1, 2, 0, earlyTs, sig)).to.be.revertedWithCustomError(kickpact, "NotFinal")
   })
 
   it("one signature settles every pool on the same fixture", async () => {
-    const { kickpact, oracle, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, oracles, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     await kickpact.connect(alice).createPool(42n, ONE_KUSD, deadlineMs, kickoffMs, 1)
     await kickpact.connect(bob).createPool(42n, 5n * ONE_KUSD, deadlineMs, kickoffMs, 1)
-    const sig = await signResult(oracle, addr, 42n, 3, 0, finalTs)
+    const sig = await attest(oracles.slice(0, 2), addr, 42n, 3, 0, finalTs)
     await kickpact.settle(1, 3, 0, finalTs, sig)
     await kickpact.settle(2, 3, 0, finalTs, sig) // same sig, second pool
     expect((await kickpact.getPool(1)).settled).to.equal(true)
@@ -158,13 +250,13 @@ describe("Kickpact", () => {
   })
 
   it("pays the winners the whole pot and blocks losers + double claims", async () => {
-    const { kickpact, kusd, oracle, alice, bob, carol, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, kusd, oracles, alice, bob, carol, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     const stake = 10n * ONE_KUSD
     await kickpact.connect(alice).createPool(11n, stake, deadlineMs, kickoffMs, 1) // home
     await kickpact.connect(bob).joinPool(1, 1) // home
     await kickpact.connect(carol).joinPool(1, 3) // away
-    await kickpact.settle(1, 4, 0, finalTs, await signResult(oracle, addr, 11n, 4, 0, finalTs)) // home
+    await kickpact.settle(1, 4, 0, finalTs, await attest(oracles.slice(0, 2), addr, 11n, 4, 0, finalTs)) // home
 
     const pot = stake * 3n
     const share = pot / 2n // alice + bob
@@ -177,13 +269,13 @@ describe("Kickpact", () => {
   })
 
   it("refunds everyone when the settled outcome had no backers", async () => {
-    const { kickpact, kusd, oracle, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
+    const { kickpact, kusd, oracles, alice, bob, kickoffMs, deadlineMs, finalTs } = await loadFixture(deploy)
     const addr = await kickpact.getAddress()
     const stake = 7n * ONE_KUSD
     await kickpact.connect(alice).createPool(21n, stake, deadlineMs, kickoffMs, 1) // home
     await kickpact.connect(bob).joinPool(1, 1) // home
     // actual result away → nobody picked away → winners 0 → refunds
-    await kickpact.settle(1, 0, 2, finalTs, await signResult(oracle, addr, 21n, 0, 2, finalTs))
+    await kickpact.settle(1, 0, 2, finalTs, await attest(oracles.slice(0, 2), addr, 21n, 0, 2, finalTs))
     expect((await kickpact.getPool(1)).winners).to.equal(0n)
     const before = await kusd.balanceOf(alice.address)
     await kickpact.connect(alice).claim(1)
