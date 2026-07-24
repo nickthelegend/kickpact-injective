@@ -1,0 +1,10 @@
+{
+  "network": "inj_testnet",
+  "chainId": 1439,
+  "rpc": "https://k8s.testnet.json-rpc.injective.network/",
+  "explorer": "https://testnet.blockscout.injective.network",
+  "kusd": "0x5761A411F5B07160328a71263F71c0EB3Ad17557",
+  "kickpact": "0x528c3314FbE745e7111a797B6e104408C1d62DB5",
+  "oracleSigner": "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a",
+  "deployedBy": "0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a"
+}

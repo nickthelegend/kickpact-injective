@@ -1,27 +1,35 @@
-# TxLINE API — builder feedback
+# Injective EVM — builder feedback
 
-*From the Kickpact team, after integrating the full surface (auth → REST → SSE → proofs → on-chain CPI) over the hackathon.*
+*From the Kickpact team, after porting a self-custodial betting escrow (Solidity contract + EIP-712 settlement + ethers keeper + Expo/ethers mobile client) onto Injective EVM testnet (chainId 1439). Concrete notes, grounded in what's actually in this repo.*
 
-## What we loved
+## What worked well
 
-1. **`validate_stat_v2` is a genuinely great primitive.** Building the predicate on-chain from a claimed outcome and letting the oracle confirm/refute it made our settlement engine trustless *by construction* — the "lying keeper gets refuted" test passed on the first run against the cloned program. The `.view()` pattern also gave us a killer UX feature for free: receipts that re-verify from a phone/browser.
-2. **`llms.txt` + the `tx-on-chain` repo.** Docs index made for agents, runnable devnet scripts, published IDL, per-network IDLs — we went from zero to an activated API token and a validated real-match proof in one working session. `declare_program!` consumed the IDL unmodified.
-3. **Demargined `Pct` on StablePrice odds.** Shipping implied probabilities next to prices (`Pct: ["36.887", …]`) meant our odds board needed zero math to be honest.
-4. **Free tier that is actually free.** `subscribe(level 1)` at 0 TxL/week on devnet, pay only rent/fees — perfect hackathon on-ramp, and the on-chain activation is a nice taste of the real flow.
-5. **The 2026 sim timeline.** Having played knockout fixtures with full score histories *and* proofs (England 1–2 Argentina!) available before the final made end-to-end testing possible days before submission.
+1. **It really is just EVM.** The escrow moved from an Anchor program to a standard Solidity 0.8.28 contract using stock OpenZeppelin (`EIP712`, `ECDSA`, `SafeERC20`, `ReentrancyGuard`), Hardhat, and ethers v6 — no Injective-specific SDK in the contract or the clients. The whole non-chain half of the product (Bluetooth duels, the screens, the data layer) came across untouched because it never depended on the chain.
+2. **Standard EIP-712 tooling end to end.** The same domain + `Result` type is produced by the keeper (`oracle.signTypedData`), verified in the contract (`ECDSA.recover`), and re-verified on the phone (`ethers.verifyTypedData`) — three environments, one primitive, zero glue. That gave us re-verifiable receipts on-device for free.
+3. **Blockscout is a real explorer + verifier.** Tx links, contract pages, and source verification all worked against `testnet.blockscout.injective.network` once configured (see the gotcha below), so the demo has clickable, verifiable artifacts.
+4. **The embedded-wallet path is smooth.** A Privy embedded **Ethereum** wallet works directly because Injective is EVM — email/social login → an EVM key → ethers signer, no bespoke wallet integration.
 
 ## Friction we hit (with repro details)
 
-1. **Mixed response framing on sibling endpoints.** `GET /api/scores/snapshot/{id}` returns a JSON array, but `GET /api/scores/updates/{id}` and `/historical/{id}` return **SSE-framed text** (`data:`/`event:`/`id:` lines) to a plain GET. Our client "Failed to parse JSON" until we sniffed the body. Suggestion: honor `Accept: application/json` on the replay endpoints, or document the framing prominently.
-2. **The IDL `address` points at mainnet.** `idl/txoracle.json` in the repo root carries the mainnet program id; on devnet, `pricing_matrix` fetches fail with "Account does not exist" until you notice `examples/devnet/idl/txoracle.json` exists. Suggestion: a loud callout in the quickstart (or ship one IDL with per-cluster addresses in `metadata`).
-3. **zstd responses break Bun's fetch.** The API compresses aggressively; Bun 1.3's fetch advertises zstd but fails decoding (`ZstdDecompressionError`) on `POST /api/token/activate`. Workaround: `Accept-Encoding: deflate` (your examples do this — now we know why). A note in the troubleshooting page would save people an hour.
-4. **Lost activation response = lost token.** Our first `token/activate` succeeded server-side but the response was eaten by the zstd issue; retrying with the same `txSig` correctly returned *"This transaction has already been used to activate a subscription"* — but there's no `GET` to recover the already-minted token, so we had to subscribe again. Suggestion: make activation idempotent for the same (txSig, wallet) or add a token-recovery endpoint authenticated by wallet signature.
-5. **Default fixtures snapshot is future-only.** `fixtures/snapshot?competitionId=72` (no `startEpochDay`) returns only upcoming fixtures — fine once you know it, surprising when you're hunting for a finished match to validate. A `from`/`to` doc note (or including the last N days by default) would help.
-6. **Odds snapshot vs. windows.** For fixtures without a live snapshot yet, discovering odds means scanning 5-minute windows (`/odds/updates/{epochDay}/{hour}/{interval}`) — workable, but a `?latest=1` or "most recent odds for fixture" convenience endpoint would remove a loop from every client.
-7. **Small one:** score records for a finished match can end at phase 4 (in-play) without a phase-5 record in the same window (our semifinal capture ends at the 93'). If the last record of a fixture always flipped to `Ended`, downstream finality logic would be simpler.
+1. **OpenZeppelin 5.x compiles to Cancun; Injective wanted paris.** OZ 5.x emits `mcopy` / transient-storage / `PUSH0` under a modern solc target, and that bytecode didn't run cleanly on the testnet EVM. Fix (in `hardhat.config.ts`): `settings.evmVersion = "paris"`. Worth a prominent line in the EVM docs — "if your contract deploys but reverts on first call, check your `evmVersion`" would save people an afternoon.
+
+2. **Gas estimation / EIP-1559 doesn't just work — pin a legacy gas price.** Left to auto-estimate, transactions would hang or under-price. Every write in this repo carries an explicit `{ gasPrice: 160_000_000n }` (160 gwei) — the deploy script, `settle-demo`, the keeper, and both mobile writes. A documented "recommended testnet gas price" (and whether EIP-1559 `maxFeePerGas` is supported) would remove guesswork.
+
+3. **ethers v6 re-probes a non-standard chain unless you pin it.** On chainId 1439 we had to construct providers as `new JsonRpcProvider(rpc, 1439, { staticNetwork: true })`; without `staticNetwork` ethers issues extra `eth_chainId` round-trips and occasionally mis-detects the network. Minor, but a copy-paste snippet in the "connect with ethers" docs would help.
+
+4. **Blockscout verification needs the Hardhat toolbox pointed at it, with a dummy key.** `@nomicfoundation/hardhat-toolbox`'s `etherscan` config assumes an Etherscan-style API key. For Blockscout we set `apiKey: { inj_testnet: "nil" }`, added a `customChains` entry with the Blockscout `apiURL`/`browserURL`, and set `sourcify.enabled = false`. It works, but it's non-obvious — a ready-made `customChains` block in the docs would be the single highest-leverage snippet you could publish.
+
+5. **The faucet is the bottleneck for automated flows.** Funding the deployer/relayer means going through the web faucet (`testnet.faucet.injective.network`), which is rate-limited / anti-abuse-protected — you can't script it, and repeat requests get throttled. Our `deploy.ts` hard-fails with "deployer has 0 INJ — fund it from the faucet first" precisely because we hit this. A small programmatic testnet drip (captcha-gated per address, but callable) would make CI and multi-key setups (separate deployer + oracle + relayer) much less fiddly.
+
+6. **No on-chain sports oracle — this reshaped the whole product.** The Solana build settled trustlessly by CPI-ing into a Merkle-proof score oracle. Injective's oracles (Pyth, Band, the native oracle module) are **price** feeds — there's no on-chain scoreboard to verify a football result against. We had to fall back to a signed-score design (`oracleSigner` signs the goals, the contract derives the outcome), which is honestly *weaker* — one trusted signer for the fact of the score. We bound it (permissionless submission, on-chain outcome derivation, a 48h `refundExpired` escape hatch, an upgrade path to N-of-M), but the trustlessness we had on Solana is gone. **This is the one thing that would most change what's buildable on Injective**: a general attestation/registry primitive, or Band sports feeds, would let escrows like ours settle against data instead of a signer.
+
+7. **ms vs s is a footgun across the JS ↔ Solidity boundary.** We key pool deadlines / kickoff / the signed `ts` in epoch **milliseconds** (what JS gives you), but `block.timestamp` is **seconds** — the contract bridges with `block.timestamp * 1000`. Signing a `ts` in seconds silently fails the `ts ≥ kickoff + 105min` finality check. Not Injective's fault, but a classic EVM-from-JS trap worth flagging.
+
+8. **React Native needs a CSPRNG polyfill before ethers.** ethers v6 key-gen/signing calls `crypto.getRandomValues`, absent on Hermes — `polyfill.js` imports `react-native-get-random-values` first. (We could *not* use `react-native-quick-crypto`, whose native OpenSSL isn't packaged and crashes at startup, so the pure-JS path is the one that ships.)
 
 ## What we'd use next
 
-- Multi-stat strategies for prop pools ("total corners > 9") — the types are ready in the IDL and the UX writes itself.
-- `stat-validation-v3` multiproofs to settle several pools of the same fixture in one transaction.
-- A WebSocket/geyser feed of `insert_scores_root` events would let keepers react to *on-chain* anchoring rather than the off-chain stream.
+- **A decentralized sports/data oracle on Injective** — even an on-chain attestation registry we could verify a signature set against — to restore the "the data decides, not a signer" property and retire the single `oracleSigner`.
+- **An N-of-M / threshold signer set** as the interim step: the contract already separates *attesting the score* from *deciding the outcome*, so swapping one recovered address for a quorum is a contained change.
+- **A local Injective-EVM dev node / fork** for CI. Our unit tests run on the generic Hardhat network (chainId 31337); we can't exercise Injective's actual EVM quirks (the `paris`/gas issues above) without deploying to the live testnet.
+- **Native-asset staking via the `bank` precompile** — issuing kUSD as a bank denom and settling pools in a native Injective asset (reachable from Solidity per the EVM docs) is a natural next step once the money model is real.

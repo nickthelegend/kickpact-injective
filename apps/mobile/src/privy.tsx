@@ -1,20 +1,19 @@
 /**
  * Privy — the primary sign-in. Email or a social account creates a
- * self-custodial embedded Solana wallet, so a first-time user is betting in
- * seconds without ever seeing a seed phrase.
+ * self-custodial embedded **Ethereum** wallet (Injective is EVM), so a
+ * first-time user is betting in seconds without ever seeing a seed phrase.
  *
- * Native-only, exactly like MWA and Nearby: the web/desktop bundle must never
- * import the native module, so everything here is resolved lazily behind a
- * `Platform.OS` check and degrades to a stub. The burner path keeps working
- * untouched when Privy isn't available.
+ * Native-only, exactly like Nearby: the web bundle must never import the native
+ * module, so everything here is resolved lazily behind a `Platform.OS` check
+ * and degrades to a stub. The keychain burner path keeps working untouched when
+ * Privy isn't available.
  *
- * Providers below are the ones ACTUALLY enabled on this Privy app (checked
- * against auth.privy.io/api/v1/apps/<id>) — apple and discord are disabled, so
- * listing them would render buttons that fail.
+ * Providers below are the ones ACTUALLY enabled on this Privy app — apple and
+ * discord are disabled, so listing them would render buttons that fail.
  */
 import * as React from "react"
 import { Platform } from "react-native"
-import type { Connection, Transaction } from "@solana/web3.js"
+import { ethers } from "ethers"
 
 export const PRIVY_LOGIN_METHODS = ["email", "google", "twitter", "github", "linkedin"] as const
 
@@ -40,10 +39,6 @@ function privy(): Mod | null {
   return mod
 }
 
-/**
- * Wraps the app in PrivyProvider + PrivyElements (Privy's own login modal).
- * On web, or without credentials, renders children untouched.
- */
 export function PrivyHost({ children }: { children: React.ReactNode }) {
   if (!privyAvailable()) return <>{children}</>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -64,8 +59,8 @@ export interface PrivyWallet {
   ready: boolean
   login(): Promise<void>
   logout(): Promise<void>
-  /** Sign + send a web3.js Transaction through the embedded wallet. */
-  signAndSend(tx: Transaction, connection: Connection): Promise<string>
+  /** An ethers Signer backed by the embedded EVM wallet, or null if not ready. */
+  getSigner(): Promise<ethers.Signer | null>
 }
 
 const STUB: PrivyWallet = {
@@ -76,13 +71,11 @@ const STUB: PrivyWallet = {
     throw new Error("Privy unavailable on this platform")
   },
   async logout() {},
-  async signAndSend() {
-    throw new Error("Privy unavailable on this platform")
+  async getSigner() {
+    return null
   },
 }
 
-// Platform.OS is constant for the process, so this conditional hook selection is
-// stable across renders (same rule the MWA hook follows).
 const useNative = privyAvailable()
 
 export function usePrivyWallet(): PrivyWallet {
@@ -97,25 +90,23 @@ function useRealPrivyWallet(): PrivyWallet {
   const { useLogin } = require("@privy-io/expo/ui")
   const { login } = useLogin()
   const { user, logout } = m.usePrivy()
-  const solana = m.useEmbeddedSolanaWallet()
+  const eth = m.useEmbeddedEthereumWallet()
 
-  const wallet = solana?.wallets?.[0] ?? null
+  const wallet = eth?.wallets?.[0] ?? null
   const address = wallet?.address ?? null
 
-  // Once logged in, make sure an embedded Solana wallet exists (or is recovered).
+  // Once logged in, make sure an embedded Ethereum wallet exists.
   React.useEffect(() => {
     if (!user) return
-    if (solana?.wallets?.length) return
-    const needsRecovery = solana?.status === "needs-recovery" && !!solana.recover
+    if (eth?.wallets?.length) return
     ;(async () => {
       try {
-        if (needsRecovery) await solana.recover!()
-        else if (solana?.create) await solana.create!()
+        if (eth?.create) await eth.create()
       } catch (e) {
         console.warn("privy wallet provisioning failed", e)
       }
     })()
-  }, [user, solana])
+  }, [user, eth])
 
   return {
     available: true,
@@ -127,14 +118,11 @@ function useRealPrivyWallet(): PrivyWallet {
     logout: async () => {
       await logout()
     },
-    signAndSend: async (tx: Transaction, connection: Connection) => {
-      if (!wallet) throw new Error("no Privy wallet yet")
-      const provider = await wallet.getProvider()
-      const res = await provider.request({
-        method: "signAndSendTransaction",
-        params: { transaction: tx, connection },
-      })
-      return typeof res === "string" ? res : ((res as { signature: string }).signature ?? String(res))
+    getSigner: async () => {
+      if (!wallet) return null
+      const eip1193 = await wallet.getProvider()
+      const browser = new ethers.BrowserProvider(eip1193 as any)
+      return browser.getSigner()
     },
   }
 }

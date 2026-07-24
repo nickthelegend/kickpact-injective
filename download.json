@@ -1,7 +1,7 @@
 {
   "version": "v2.1.0-solana",
   "updated": "2026-07-19",
-  "network": "solana-devnet",
+  "network": "injective-evm-testnet",
   "landing": {
     "url": "https://kickpact.vercel.app"
   },
@@ -11,7 +11,7 @@
   "android": {
     "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana/kickpact-android-arm64.apk",
     "size": "136 MB",
-    "sha_note": "universal APK \u00b7 io.kickpact.app \u00b7 Solana devnet + TxLINE feeds \u00b7 Bluetooth duels fixed"
+    "sha_note": "universal APK \u00b7 io.kickpact.app \u00b7 Injective EVM testnet + API-Football feeds \u00b7 Bluetooth duels fixed"
   },
   "desktop": {
     "mac": {
@@ -41,7 +41,7 @@
   "demo": {
     "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana/kickpact-demo.mp4",
     "length": "4:35",
-    "note": "two-phone Bluetooth duel, narrated, settled by TxLINE proof"
+    "note": "two-phone Bluetooth duel, narrated, settled by an oracle-signed score"
   },
   "launch_film": {
     "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/kickpact-launch.mp4",

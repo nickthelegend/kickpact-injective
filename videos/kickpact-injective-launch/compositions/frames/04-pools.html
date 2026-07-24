@@ -1,0 +1,376 @@
+<template data-composition-id="04-pools" data-width="1920" data-height="1080">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+<style>
+  @font-face {
+    font-family: 'KickpactPixel';
+    src: url('assets/fonts/KickpactPixel.ttf') format('truetype');
+    font-weight: 400;
+    font-display: block;
+  }
+
+  #root {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: transparent;
+    container-type: size;
+    font-family: "KickpactPixel", Georgia, serif;
+    --paper: #10162e;
+    --paper-2: #1b2548;
+    --ink: #627eea;
+    --ink-soft: #8aa0f5;
+    --grid: rgba(98, 126, 234, 0.12);
+    --ink-faint: rgba(98, 126, 234, 0.22);
+    --gold: #e8b84b;
+    --mono: ui-monospace, "SFMono-Regular", monospace;
+  }
+
+  /* ---- ground : full-bleed navy + permanent periwinkle graph-paper grid (own clip, never #root) ---- */
+  .pl-ground {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+    overflow: hidden;
+  }
+  #pl-grid {
+    position: absolute;
+    inset: -24px;
+    background-image:
+      linear-gradient(var(--ink-faint) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, var(--ink-faint) 1.5px, transparent 1.5px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 200px 200px, 200px 200px, 40px 40px, 40px 40px;
+  }
+
+  /* ---- frame furniture / chrome ---- */
+  .pl-chrome { position: absolute; inset: 0; pointer-events: none; }
+  #pl-hair-top {
+    position: absolute;
+    left: 3.75cqw; right: 3.75cqw; top: 7.2cqh;
+    height: 1.5px;
+    background: var(--ink);
+    transform-origin: left center;
+  }
+  #pl-hair-bot {
+    position: absolute;
+    left: 3.75cqw; right: 3.75cqw; top: 82.6cqh;
+    height: 1.5px;
+    background: var(--ink);
+    opacity: 0.4;
+    transform-origin: right center;
+  }
+  #pl-meta {
+    position: absolute;
+    left: 3.75cqw; top: 3.7cqh;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.72;
+  }
+  #pl-fig {
+    position: absolute;
+    left: 3.75cqw; top: 79.4cqh;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.55;
+  }
+  #pl-page {
+    position: absolute;
+    right: 3.75cqw; top: 79.4cqh;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.55;
+  }
+  /* QR-block corner punctuation (hand-authored 8x8 mosaic) */
+  #pl-qr {
+    position: absolute;
+    top: 2.78cqh; right: 3.75cqw;
+    width: 48px; height: 48px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    background: var(--paper);
+    box-shadow: 0 0 0 2px var(--paper);
+  }
+  #pl-qr i { background: transparent; }
+  #pl-qr i.on { background: var(--ink); }
+
+  /* vertical catalogue chrome down the far-left edge */
+  #pl-vstack {
+    position: absolute;
+    left: 1.1cqw; top: 33cqh;
+    writing-mode: vertical-rl;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.42;
+  }
+
+  /* ---- left column : feature tag + headline ---- */
+  #pl-tag {
+    position: absolute;
+    left: 6.51cqw; top: 27.8cqh;
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  #pl-tag .idx { color: var(--ink-soft); }
+  #pl-tag .dot { color: var(--ink-faint); margin: 0 0.5em; }
+
+  #pl-head {
+    position: absolute;
+    left: 6.51cqw; top: 32.6cqh;
+    width: 44cqw;
+  }
+  .pl-hl {
+    font-family: "KickpactPixel", Georgia, serif;
+    font-weight: 400;
+    font-size: 4.6cqw;
+    line-height: 1.06;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  #pl-kw {
+    display: inline-block;
+    transform-origin: left center;
+    color: var(--gold);
+  }
+
+  /* ---- phone stage (drifting) ---- */
+  .pl-stage {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  #pl-phone {
+    position: absolute;
+    left: 70cqw; top: 6.48cqh;
+    padding: 1.5cqh 0.73cqw 1.85cqh;
+    background: var(--paper-2);
+    border: 1.5px solid var(--ink);
+    border-radius: 0;
+  }
+  #pl-phone .speaker {
+    position: absolute;
+    top: 0.75cqh; left: 50%;
+    width: 60px; height: 4px;
+    margin-left: -30px;
+    background: var(--ink-soft);
+    opacity: 0.5;
+  }
+  #pl-phone .home {
+    position: absolute;
+    bottom: 0.85cqh; left: 50%;
+    width: 116px; height: 4px;
+    margin-left: -58px;
+    background: var(--ink);
+    opacity: 0.4;
+  }
+  .pl-screen-window {
+    width: 20.72cqw; height: 72cqh;
+    overflow: hidden;
+    border: 1px solid rgba(98, 126, 234, 0.35);
+    background: var(--paper);
+  }
+  #pl-screen {
+    display: block;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform-origin: center center;
+  }
+
+  /* ---- callout : annotation + orthogonal lead + target reticle (static overlay) ---- */
+  #pl-callout-group { position: absolute; inset: 0; pointer-events: none; }
+  #pl-annot { position: absolute; left: 6.51cqw; top: 54.6cqh; width: 16cqw; }
+  #pl-annot .lab {
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  #pl-annot .rule {
+    margin-top: 10px;
+    width: 11.875cqw; height: 1px;
+    background: var(--ink-faint);
+  }
+
+  #pl-callout {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    overflow: visible;
+  }
+  #pl-callout path {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 2;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+  #pl-callout rect.origin { fill: var(--ink); stroke: none; }
+</style>
+
+<div
+  id="root"
+  data-composition-id="04-pools"
+  data-start="0"
+  data-duration="6.36"
+  data-width="1920"
+  data-height="1080"
+>
+  <!-- track 0 : ground -->
+  <div class="clip pl-ground" id="pl-ground" data-start="0" data-duration="6.36" data-track-index="0">
+    <div id="pl-grid"></div>
+  </div>
+
+  <!-- track 1 : frame furniture / chrome -->
+  <div class="clip pl-chrome" id="pl-chrome" data-start="0" data-duration="6.36" data-track-index="1">
+    <div id="pl-hair-top"></div>
+    <div id="pl-hair-bot"></div>
+    <div id="pl-meta">Kickpact &middot; Injective &mdash; Pools &middot; 04/07</div>
+    <div id="pl-fig">Fig. 01 &mdash; Self-Custodial Pools</div>
+    <div id="pl-page">04 / 07</div>
+    <div id="pl-qr" aria-hidden="true"></div>
+    <div id="pl-vstack">Kickpact &middot; Injective &middot; Self-Custody</div>
+  </div>
+
+  <!-- track 2 : feature tag -->
+  <div class="clip" id="pl-tag" data-start="0" data-duration="6.36" data-track-index="2">
+    <span class="idx">01</span><span class="dot">&middot;</span>Self-Custodial Pools
+  </div>
+
+  <!-- track 3 : headline -->
+  <div class="clip" id="pl-head" data-start="0" data-duration="6.36" data-track-index="3">
+    <div class="pl-hl" id="pl-hl1">No admin key.</div>
+    <div class="pl-hl" id="pl-hl2">No <span id="pl-kw">override</span>.</div>
+  </div>
+
+  <!-- track 4 : phone (drifting) -->
+  <div class="clip pl-stage" id="pl-stage" data-start="0" data-duration="6.36" data-track-index="4">
+    <div id="pl-phone">
+      <div class="speaker"></div>
+      <div class="pl-screen-window">
+        <img id="pl-screen" src="assets/app-bet.png" alt="" />
+      </div>
+      <div class="home"></div>
+    </div>
+  </div>
+
+  <!-- track 5 : callout (annotation + lead + reticle, static overlay) -->
+  <div class="clip" id="pl-callout-group" data-start="0" data-duration="6.36" data-track-index="5">
+    <div id="pl-annot">
+      <div class="lab">Stake &middot; Pick &middot; Create</div>
+      <div class="rule"></div>
+    </div>
+
+    <svg id="pl-callout" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect class="origin" id="pl-origin" x="352" y="620" width="8" height="8"></rect>
+      <path class="pl-draw" id="pl-lead" d="M 360 624 H 1180 V 664 H 1374"></path>
+      <path class="pl-draw pl-brk" d="M 1374 638 V 604 H 1408"></path>
+      <path class="pl-draw pl-brk" d="M 1706 604 H 1740 V 638"></path>
+      <path class="pl-draw pl-brk" d="M 1374 690 V 724 H 1408"></path>
+      <path class="pl-draw pl-brk" d="M 1706 724 H 1740 V 690"></path>
+    </svg>
+  </div>
+</div>
+
+<script>
+  (function () {
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+    var DURATION = 5.76;
+
+    // ---- build QR mosaic deterministically (hand-authored 8x8) ----
+    var QR = "1110101110001001101011101000101011101101000001001110011110110101";
+    var qr = document.getElementById("pl-qr");
+    if (qr) {
+      for (var c = 0; c < 64; c++) {
+        var cell = document.createElement("i");
+        if (QR.charAt(c) === "1") cell.className = "on";
+        qr.appendChild(cell);
+      }
+    }
+
+    // ---- prime SVG draw paths (measured, hidden until drawn) ----
+    document.querySelectorAll("#pl-callout .pl-draw").forEach(function (p) {
+      var len = p.getTotalLength() * 1.02;
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+    });
+
+    // ---- continuous parallax : phone drifts, screen ken-burns, grid counters ----
+    tl.fromTo("#pl-stage", { x: 0, y: 0 },
+      { x: 5, y: -10, duration: DURATION, ease: "sine.inOut" }, 0);
+    tl.fromTo("#pl-screen", { scale: 1 },
+      { scale: 1.03, duration: DURATION, ease: "sine.inOut" }, 0);
+    tl.fromTo("#pl-grid", { y: 0 },
+      { y: 10, duration: DURATION, ease: "sine.inOut" }, 0);
+
+    // ---- Scene 1 (0.0-~0.8s) : ground furniture rises + phone enters, right-weighted ----
+    tl.fromTo("#pl-hair-top", { scaleX: 0 },
+      { scaleX: 1, duration: 0.5, ease: "power3.out" }, 0.10);
+    tl.fromTo("#pl-meta", { opacity: 0, y: -8 },
+      { opacity: 0.72, y: 0, duration: 0.45, ease: "power2.out" }, 0.15);
+    tl.fromTo(["#pl-fig", "#pl-page", "#pl-hair-bot"], { opacity: 0 },
+      { opacity: function (i) { return i === 2 ? 0.4 : 0.55; }, duration: 0.5, ease: "power2.out" }, 0.20);
+    tl.fromTo("#pl-qr i.on", { opacity: 0 },
+      { opacity: 1, duration: 0.2, stagger: 0.012, ease: "none" }, 0.25);
+    tl.fromTo("#pl-vstack", { opacity: 0, y: 24 },
+      { opacity: 0.42, y: 0, duration: 0.6, ease: "power2.out" }, 0.30);
+
+    // hero phone : rise + settle (power ease, no spring)
+    tl.fromTo("#pl-phone", { y: 90, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.05);
+
+    // feature tag
+    tl.fromTo("#pl-tag", { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0.22);
+
+    // ---- Scene 2 (~0.85s) : first headline line ----
+    tl.fromTo("#pl-hl1", { opacity: 0, y: 28 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.85);
+
+    // ---- Scene 3 (~1.9-3.4s) : callout hairline draws from the headline across to STAKE/PICK/CREATE ----
+    tl.fromTo("#pl-annot", { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 1.90);
+    tl.fromTo("#pl-origin", { opacity: 0 },
+      { opacity: 1, duration: 0.25, ease: "power1.out" }, 1.98);
+    tl.to("#pl-lead", { strokeDashoffset: 0, duration: 0.95, ease: "power2.out" }, 2.10);
+    tl.to(".pl-brk", { strokeDashoffset: 0, duration: 0.28, stagger: 0.07, ease: "power2.out" }, 2.95);
+
+    // ---- Scene 4 (~3.85s) : second headline line ----
+    tl.fromTo("#pl-hl2", { opacity: 0, y: 28 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.85);
+
+    // ---- Scene 5 (~4.72s) : keyword "override" flares on the VO word ----
+    tl.fromTo("#pl-kw", { scale: 1, textShadow: "0 0 0px rgba(232,184,75,0)" },
+      { scale: 1.08, textShadow: "0 0 26px rgba(232,184,75,0.65)", duration: 0.26, ease: "power2.out" }, 4.72);
+    tl.fromTo("#pl-kw", { scale: 1.08, textShadow: "0 0 26px rgba(232,184,75,0.65)" },
+      { scale: 1, textShadow: "0 0 9px rgba(232,184,75,0.24)", duration: 0.72, ease: "power2.inOut" }, 4.98);
+
+    // full-span anchor so the sub-comp timeline spans the whole frame
+    tl.to({}, { duration: DURATION }, 0);
+
+    window.__timelines["04-pools"] = tl;
+  })();
+</script>
+</template>

@@ -1,0 +1,12 @@
+{
+  "note": "World Cup — semi-final stage. The two SEMI-FINAL fixtures are upcoming (predict them). The finished QUARTER-FINAL fixtures back the settled receipts + the withdraw demo. Kickoffs are assigned relative to load time (offsetMin) so the semis are always upcoming. The mobile app and the keeper read this same file, so fixtureIds always agree.",
+  "league": "FIFA World Cup",
+  "stage": "SEMI-FINALS",
+  "fixtures": [
+    { "id": 900301, "round": "SEMI-FINAL", "home": "Argentina", "away": "France", "offsetMin": 90 },
+    { "id": 900302, "round": "SEMI-FINAL", "home": "Spain", "away": "England", "offsetMin": 240 },
+    { "id": 900303, "round": "QUARTER-FINAL", "home": "Brazil", "away": "Croatia", "offsetMin": -220, "homeGoals": 2, "awayGoals": 1 },
+    { "id": 900304, "round": "QUARTER-FINAL", "home": "Portugal", "away": "Morocco", "offsetMin": -320, "homeGoals": 1, "awayGoals": 0 },
+    { "id": 900305, "round": "QUARTER-FINAL", "home": "Netherlands", "away": "Uruguay", "offsetMin": -400, "homeGoals": 3, "awayGoals": 1 }
+  ]
+}

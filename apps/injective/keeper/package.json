@@ -1,0 +1,14 @@
+{
+  "name": "kickpact-keeper",
+  "private": true,
+  "type": "module",
+  "description": "Kickpact keeper — reads final World Cup scores from a public sports API, signs them with the oracle key, and relays settle() for open pools on Injective EVM.",
+  "scripts": {
+    "fixtures": "bun run src/fixtures.ts",
+    "keeper": "bun run src/keeper.ts",
+    "watch": "bun run src/keeper.ts --watch"
+  },
+  "dependencies": {
+    "ethers": "^6.13.5"
+  }
+}

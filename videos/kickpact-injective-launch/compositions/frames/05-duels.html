@@ -1,0 +1,482 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "KickpactPixel";
+      src: url("assets/fonts/KickpactPixel.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "KickpactDisplay";
+      src: url("assets/fonts/KickpactDisplay.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      color: #8aa0f5;
+      font-family: "KickpactDisplay", sans-serif;
+      --paper: #10162e;
+      --paper2: #1b2548;
+      --ink: #627eea;
+      --ink-soft: #8aa0f5;
+      --white: #eef1ff;
+      --grid: rgba(98, 126, 234, 0.11);
+      --faint: rgba(98, 126, 234, 0.2);
+      --green: #54c468;
+    }
+
+    /* ---- ground : full-bleed navy + permanent periwinkle graph-paper grid (own clips, never #root) ---- */
+    #root #du-ground {
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+    }
+    #root #du-grid {
+      position: absolute;
+      inset: -2%;
+      background-image:
+        linear-gradient(var(--faint) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, var(--faint) 1.5px, transparent 1.5px),
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 10.5cqw 10.5cqw, 10.5cqw 10.5cqw, 2.1cqw 2.1cqw, 2.1cqw 2.1cqw;
+      transform-origin: 50% 46%;
+    }
+    #root #du-gridglow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 54% 40% at 30% 46%, rgba(98, 126, 234, 0.16) 0%, transparent 66%);
+    }
+    #root #du-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 82% 84% at 54% 47%, transparent 52%, rgba(4, 7, 20, 0.62) 100%);
+    }
+
+    /* ---- frame furniture / chrome ---- */
+    #root .du-hair {
+      position: absolute;
+      left: 4cqw;
+      right: 4cqw;
+      height: 2px;
+      background: var(--ink);
+      box-shadow: 0 0 10px rgba(98, 126, 234, 0.4);
+    }
+    #root #du-hairtop { top: 8.5cqh; transform-origin: 0% 50%; }
+    #root #du-hairbot { top: 82.6cqh; opacity: 0.5; transform-origin: 100% 50%; }
+
+    #root #du-meta {
+      position: absolute;
+      left: 4.17cqw;
+      top: 5.6cqh;
+      font-family: "KickpactPixel", monospace;
+      font-size: 0.9cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    #root #du-meta .soft { color: var(--ink-soft); }
+
+    #root #du-botlabel {
+      position: absolute;
+      left: 4.17cqw;
+      top: 79.4cqh;
+      font-family: "KickpactPixel", monospace;
+      font-size: 0.82cqw;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(98, 126, 234, 0.5);
+    }
+
+    #root #du-qr {
+      position: absolute;
+      right: 4cqw;
+      top: 4.9cqh;
+      width: 56px;
+      height: 56px;
+      transform-origin: center;
+    }
+    #root #du-qr rect { fill: var(--ink); }
+
+    /* ---- feature tag (kicker above the keyword) ---- */
+    #root #du-tag {
+      position: absolute;
+      left: 4.4cqw;
+      top: 13.9cqh;
+      font-family: "KickpactPixel", monospace;
+      font-size: 0.98cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    #root #du-tag .idx { color: var(--ink-soft); margin-right: 0.2em; }
+
+    /* ---- keyword accent block : Bluetooth (navy on periwinkle) ---- */
+    #root #du-keyword {
+      position: absolute;
+      left: 4.17cqw;
+      top: 17.8cqh;
+    }
+    #root .du-kwwrap { position: relative; display: inline-block; }
+    #root #du-kwfill {
+      position: absolute;
+      inset: 0;
+      background: var(--ink);
+      box-shadow: 0 0 26px rgba(98, 126, 234, 0.42);
+      transform-origin: 0% 50%;
+      z-index: 1;
+    }
+    #root #du-kwword {
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      padding: 0.7cqh 1.6cqw 1.0cqh;
+      font-family: "KickpactPixel", monospace;
+      font-size: 4.0cqw;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: var(--paper);
+    }
+
+    /* ---- + Online toggle chip ---- */
+    #root #du-toggle {
+      position: absolute;
+      left: 31.25cqw;
+      top: 20.6cqh;
+      padding: 0.5cqh 0.85cqw 0.6cqh;
+      border: 2px solid var(--ink);
+      font-family: "KickpactPixel", monospace;
+      font-size: 1.0cqw;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    /* ---- bluetooth discovery (two phones finding each other) ---- */
+    #root #du-bt {
+      position: absolute;
+      left: 4.17cqw;
+      top: 27.0cqh;
+      width: 64.58cqw;
+      height: 35.2cqh;
+    }
+    #root #du-bt svg { overflow: visible; }
+    #root .du-arc {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 4;
+      stroke-dasharray: 3 8;
+      stroke-linecap: butt;
+    }
+    #root #du-line {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 2;
+      stroke-dasharray: 5 9;
+    }
+    #root .du-nb { fill: none; stroke: var(--ink); stroke-width: 3; }
+    #root .du-ns { fill: var(--ink-soft); opacity: 0.4; }
+    #root .du-nh { fill: var(--ink); }
+    #root .du-nb-g { fill: none; stroke: var(--green); stroke-width: 3; }
+    #root .du-ns-g { fill: var(--green); opacity: 0.4; }
+    #root #du-check { fill: none; stroke: var(--green); stroke-width: 4; stroke-linecap: square; stroke-linejoin: miter; }
+
+    #root #du-youlab,
+    #root #du-friendlab {
+      position: absolute;
+      font-family: "KickpactPixel", monospace;
+      font-size: 0.94cqw;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    #root #du-youlab { left: 10.0cqw; top: 50.6cqh; }
+    #root #du-friendlab { left: 62.5cqw; top: 34.0cqh; color: var(--green); }
+
+    /* ---- duel code chip (online path) ---- */
+    #root #du-code {
+      position: absolute;
+      left: 4.17cqw;
+      top: 63.5cqh;
+      width: 22.4cqw;
+      background: var(--paper2);
+      border: 2px solid var(--ink);
+      padding: 1.4cqh 1.5cqw 1.6cqh;
+    }
+    #root .du-code-hd {
+      font-family: "KickpactPixel", monospace;
+      font-size: 0.94cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    #root #du-codeval {
+      margin-top: 0.7cqh;
+      font-family: monospace;
+      font-size: 2.2cqw;
+      letter-spacing: 0.08em;
+      color: var(--white);
+    }
+    #root .du-code-ft {
+      margin-top: 0.9cqh;
+      font-family: "KickpactDisplay", sans-serif;
+      font-size: 0.82cqw;
+      letter-spacing: 0.04em;
+      color: rgba(98, 126, 234, 0.72);
+    }
+
+    /* ---- unify beat : one on-chain pot ---- */
+    #root #du-pot {
+      position: absolute;
+      left: 29.2cqw;
+      top: 65.7cqh;
+      display: flex;
+      align-items: center;
+      gap: 0.6cqw;
+      font-family: "KickpactPixel", monospace;
+      font-size: 1.15cqw;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+    #root #du-pot i {
+      width: 0.7cqw;
+      height: 0.7cqw;
+      background: var(--ink);
+      display: inline-block;
+    }
+    #root #du-potline {
+      position: absolute;
+      left: 29.2cqw;
+      top: 72.5cqh;
+      width: 40cqw;
+      height: 2px;
+      background: var(--ink);
+      opacity: 0.8;
+      transform-origin: 0% 50%;
+    }
+
+    /* ---- hero phone (Nearby room) ---- */
+    #root #du-phone {
+      position: absolute;
+      left: 70.8cqw;
+      top: 9.6cqh;
+      padding: 16px 14px 18px;
+      background: var(--paper2);
+      border: 1.5px solid var(--ink);
+      box-shadow: 0 0 44px rgba(4, 7, 20, 0.5);
+    }
+    #root #du-phone .du-notch {
+      position: absolute;
+      top: 7px;
+      left: 50%;
+      width: 60px;
+      height: 5px;
+      margin-left: -30px;
+      background: var(--ink-soft);
+      opacity: 0.5;
+    }
+    #root #du-phone .du-home {
+      position: absolute;
+      bottom: 7px;
+      left: 50%;
+      width: 110px;
+      height: 5px;
+      margin-left: -55px;
+      background: var(--ink);
+      opacity: 0.4;
+    }
+    #root #du-phone .du-screen {
+      width: 19.72cqw;
+      height: 68.5cqh;
+      overflow: hidden;
+      border: 1px solid rgba(98, 126, 234, 0.35);
+      background: var(--paper);
+    }
+    #root #du-screenimg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="05-duels"
+    data-start="0"
+    data-duration="6.848"
+    data-width="1920"
+    data-height="1080"
+  >
+    <!-- ground -->
+    <div id="du-ground" class="clip" data-start="0" data-duration="6.848" data-track-index="0"></div>
+    <div id="du-grid" class="clip" data-start="0" data-duration="6.848" data-track-index="1"></div>
+    <div id="du-gridglow" class="clip" data-start="0" data-duration="6.848" data-track-index="2"></div>
+    <div id="du-vignette" class="clip" data-start="0" data-duration="6.848" data-track-index="3"></div>
+
+    <!-- chrome -->
+    <div id="du-hairtop" class="du-hair clip" data-start="0.1" data-duration="6.748" data-track-index="4"></div>
+    <div id="du-hairbot" class="du-hair clip" data-start="0.15" data-duration="6.698" data-track-index="5"></div>
+    <div id="du-meta" class="clip" data-start="0.2" data-duration="6.648" data-track-index="6">
+      Kickpact &middot; Injective &mdash; Duels <span class="soft">&middot; 05 / 07</span>
+    </div>
+    <div id="du-qr" class="clip" data-start="0.3" data-duration="6.548" data-track-index="7">
+      <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="0" y="0" width="7" height="7"/><rect x="7" y="0" width="7" height="7"/><rect x="14" y="0" width="7" height="7"/>
+        <rect x="0" y="7" width="7" height="7"/><rect x="14" y="7" width="7" height="7"/>
+        <rect x="0" y="14" width="7" height="7"/><rect x="7" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        <rect x="35" y="0" width="7" height="7"/><rect x="42" y="0" width="7" height="7"/><rect x="49" y="0" width="7" height="7"/>
+        <rect x="35" y="7" width="7" height="7"/><rect x="49" y="7" width="7" height="7"/>
+        <rect x="35" y="14" width="7" height="7"/><rect x="42" y="14" width="7" height="7"/><rect x="49" y="14" width="7" height="7"/>
+        <rect x="0" y="35" width="7" height="7"/><rect x="7" y="35" width="7" height="7"/><rect x="14" y="35" width="7" height="7"/>
+        <rect x="0" y="42" width="7" height="7"/><rect x="14" y="42" width="7" height="7"/>
+        <rect x="0" y="49" width="7" height="7"/><rect x="7" y="49" width="7" height="7"/><rect x="14" y="49" width="7" height="7"/>
+        <rect x="28" y="7" width="7" height="7"/><rect x="21" y="14" width="7" height="7"/><rect x="28" y="21" width="7" height="7"/>
+        <rect x="35" y="21" width="7" height="7"/><rect x="21" y="28" width="7" height="7"/><rect x="42" y="28" width="7" height="7"/>
+        <rect x="28" y="35" width="7" height="7"/><rect x="35" y="35" width="7" height="7"/><rect x="42" y="42" width="7" height="7"/>
+        <rect x="49" y="42" width="7" height="7"/><rect x="28" y="49" width="7" height="7"/><rect x="42" y="49" width="7" height="7"/>
+      </svg>
+    </div>
+    <div id="du-botlabel" class="clip" data-start="0.4" data-duration="6.448" data-track-index="8">P2P Mesh &middot; Google Nearby</div>
+
+    <!-- feature tag -->
+    <div id="du-tag" class="clip" data-start="0.25" data-duration="6.598" data-track-index="9">
+      <span class="idx">02</span>&middot; Duels &mdash; Bluetooth + Online
+    </div>
+
+    <!-- hero phone -->
+    <div id="du-phone" class="clip" data-start="0" data-duration="6.848" data-track-index="10">
+      <div class="du-notch"></div>
+      <div class="du-screen"><img id="du-screenimg" src="assets/app-bluetooth.png" alt="Kickpact Nearby room" /></div>
+      <div class="du-home"></div>
+    </div>
+
+    <!-- keyword accent block -->
+    <div id="du-keyword" class="clip" data-start="0" data-duration="6.848" data-track-index="11">
+      <span class="du-kwwrap">
+        <span id="du-kwfill"></span>
+        <span id="du-kwword">Bluetooth</span>
+      </span>
+    </div>
+
+    <!-- + Online toggle -->
+    <div id="du-toggle" class="clip" data-start="2.2" data-duration="4.648" data-track-index="12">+ Online</div>
+
+    <!-- bluetooth discovery -->
+    <div id="du-bt" class="clip" data-start="0" data-duration="6.848" data-track-index="13">
+      <svg width="1240" height="380" viewBox="0 0 1240 380" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <line id="du-line" x1="160" y1="200" x2="1180" y2="130" />
+        <path class="du-arc" id="du-arc1" d="M195.4 157.9 A55 55 0 0 1 195.4 242.1" />
+        <path class="du-arc" id="du-arc2" d="M217.9 131.1 A90 90 0 0 1 217.9 268.9" />
+        <path class="du-arc" id="du-arc3" d="M242.3 102.0 A128 128 0 0 1 242.3 298.0" />
+        <path class="du-arc" id="du-arc4" d="M266.1 73.6 A165 165 0 0 1 266.1 326.4" />
+        <path class="du-arc" id="du-arc5" d="M287.3 48.3 A198 198 0 0 1 287.3 351.7" />
+        <path class="du-arc" id="du-arc6" d="M307.9 23.8 A230 230 0 0 1 307.9 376.2" />
+        <g id="du-nodeA">
+          <rect class="du-nb" x="144" y="174" width="32" height="52" />
+          <rect class="du-ns" x="150" y="181" width="20" height="32" />
+          <rect class="du-nh" x="155" y="217" width="10" height="3" />
+        </g>
+        <g id="du-nodeB">
+          <rect class="du-nb-g" x="1167" y="108" width="26" height="44" />
+          <rect class="du-ns-g" x="1172" y="114" width="16" height="26" />
+        </g>
+        <path id="du-check" d="M1184 129 l6 7 l13 -16" />
+      </svg>
+    </div>
+    <div id="du-youlab" class="clip" data-start="1.0" data-duration="5.848" data-track-index="14">You</div>
+    <div id="du-friendlab" class="clip" data-start="2.4" data-duration="4.448" data-track-index="15">Friend &#10003;</div>
+
+    <!-- duel code chip -->
+    <div id="du-code" class="clip" data-start="2.5" data-duration="4.348" data-track-index="16">
+      <div class="du-code-hd"># Duel code</div>
+      <div id="du-codeval">WC7-K3D9</div>
+      <div class="du-code-ft">Share to join the pot online</div>
+    </div>
+
+    <!-- unify beat -->
+    <div id="du-pot" class="clip" data-start="4.6" data-duration="2.248" data-track-index="17"><i></i>One on-chain pot</div>
+    <div id="du-potline" class="clip" data-start="4.75" data-duration="2.098" data-track-index="18"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var D = 6.848;
+      var A = "160 200"; // node-A origin (svg units) for the pulse
+      var B = "1180 130"; // node-B origin
+
+      // ground : grid draws in + a slow continuous camera push (life through the hold)
+      tl.fromTo("#du-grid", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 0);
+      tl.fromTo("#du-grid", { scale: 1 }, { scale: 1.03, duration: D, ease: "none" }, 0);
+      tl.fromTo("#du-gridglow", { opacity: 0 }, { opacity: 1, duration: 1.0, ease: "power2.out" }, 0.1);
+      tl.fromTo("#du-vignette", { opacity: 0.4 }, { opacity: 1, duration: 0.7, ease: "power1.out" }, 0);
+
+      // hairlines (top L->R, bottom R->L)
+      tl.fromTo("#du-hairtop", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 0.1);
+      tl.fromTo("#du-hairbot", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 0.15);
+
+      // chrome
+      tl.fromTo("#du-meta", { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.2);
+      tl.fromTo("#du-tag", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.25);
+      tl.fromTo("#du-qr", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.3);
+      tl.fromTo("#du-botlabel", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0.4);
+
+      // hero phone : fade + rise early, then a slow one-way drift; screen ken-burns
+      tl.fromTo("#du-phone", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 0.05);
+      tl.fromTo("#du-phone", { y: 70 }, { y: 0, duration: 0.85, ease: "power3.out" }, 0.1);
+      tl.to("#du-phone", { y: -14, x: 6, duration: D - 1.1, ease: "sine.inOut" }, 1.1);
+      tl.fromTo("#du-screenimg", { scale: 1 }, { scale: 1.035, duration: D, ease: "sine.inOut" }, 0);
+
+      // keyword "Bluetooth" — highlight wipes, then the word stamps on (VO: "...over Bluetooth")
+      tl.fromTo("#du-kwfill", { scaleX: 0 }, { scaleX: 1, duration: 0.34, ease: "power3.out" }, 1.0);
+      tl.fromTo("#du-kwword", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.34, ease: "back.out(1.7)" }, 1.3);
+
+      // bluetooth discovery — wave 1 : You broadcasts, arcs pulse out, Friend discovered (in person)
+      tl.fromTo("#du-nodeA", { opacity: 0, scale: 0.5, svgOrigin: A }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 0.85);
+      tl.fromTo("#du-youlab", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 1.0);
+      tl.fromTo("#du-arc1", { opacity: 0, scale: 0.4, svgOrigin: A }, { opacity: 0.95, scale: 1, duration: 0.85, ease: "power2.out" }, 1.15);
+      tl.fromTo("#du-arc2", { opacity: 0, scale: 0.4, svgOrigin: A }, { opacity: 0.8, scale: 1, duration: 0.85, ease: "power2.out" }, 1.5);
+      tl.fromTo("#du-arc3", { opacity: 0, scale: 0.4, svgOrigin: A }, { opacity: 0.65, scale: 1, duration: 0.85, ease: "power2.out" }, 1.85);
+      tl.fromTo("#du-line", { opacity: 0 }, { opacity: 0.5, duration: 0.6, ease: "power1.out" }, 1.6);
+      tl.fromTo("#du-nodeB", { opacity: 0, scale: 0.5, svgOrigin: B }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(2)" }, 1.95);
+      tl.fromTo("#du-check", { opacity: 0, scale: 0.3, svgOrigin: "1184 121" }, { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, 2.3);
+      tl.fromTo("#du-friendlab", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 2.4);
+
+      // online path — toggle + duel code chip (VO: "...or online with a duel code")
+      tl.fromTo("#du-toggle", { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, 2.2);
+      tl.fromTo("#du-code", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 2.5);
+      tl.fromTo("#du-codeval", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 2.85);
+
+      // bluetooth — wave 2 : friends anywhere (VO: "Friends anywhere")
+      tl.fromTo("#du-arc4", { opacity: 0, scale: 0.45, svgOrigin: A }, { opacity: 0.6, scale: 1, duration: 0.9, ease: "power2.out" }, 3.6);
+      tl.fromTo("#du-arc5", { opacity: 0, scale: 0.45, svgOrigin: A }, { opacity: 0.5, scale: 1, duration: 0.9, ease: "power2.out" }, 3.95);
+      tl.fromTo("#du-arc6", { opacity: 0, scale: 0.45, svgOrigin: A }, { opacity: 0.4, scale: 1, duration: 0.9, ease: "power2.out" }, 4.3);
+
+      // unify — one on-chain pot (VO: "one on-chain pot")
+      tl.fromTo("#du-pot", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 4.6);
+      tl.fromTo("#du-potline", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 4.75);
+
+      // full-span anchor so the sub-comp timeline spans the whole frame
+      tl.to({}, { duration: D }, 0);
+
+      window.__timelines["05-duels"] = tl;
+    })();
+  </script>
+</template>

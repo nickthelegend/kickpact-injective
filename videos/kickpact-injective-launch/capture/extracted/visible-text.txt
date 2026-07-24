@@ -1,0 +1,7 @@
+Kickpact — bet on the World Cup with friends, without trusting anyone to hold the money.
+Every prediction app asks you to trust a custodian. Kickpact doesn't.
+Friends lock the same stake. The pot lives in an escrow on Injective. An oracle signs the final score, and the contract derives the winner on-chain. The data decides.
+Open a pool in seconds — your keys, your stake, held by code no one can override.
+Pot up in person over Bluetooth, or online with a duel code.
+Every payout is a receipt you can verify yourself — the oracle signature, checked on-chain, from your phone.
+Kickpact. Predict together. Trust the data, not us.

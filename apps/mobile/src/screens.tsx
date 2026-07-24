@@ -1,9 +1,10 @@
 /**
- * Kickpact screens — Solana era. Same pixel cabinet, new engine:
- *   • TxLINE real-time World Cup data (fixtures / live scores / StablePrice odds)
- *   • kUSD prediction pools escrowed by the Kickpact program on devnet
- *   • settlement receipts backed by TxLINE Merkle proofs — verifiable from
- *     the phone with a live read-only call into the oracle program
+ * Kickpact screens — Injective era. Same pixel cabinet, new engine:
+ *   • API-Football real-time World Cup data (fixtures / live scores / odds)
+ *   • kUSD prediction pools escrowed by the Kickpact contract on Injective EVM
+ *   • settlement receipts backed by an oracle-signed final score — verifiable
+ *     from the phone by recovering the EIP-712 signer against the contract's
+ *     configured oracle
  */
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -16,26 +17,25 @@ import { BalanceChip, Panel, PixelButton, PixelText } from "./ui"
 import { QRCode } from "./qr"
 import { useWallet } from "./wallet"
 import {
-  fetchGames, fetchScore, fetchOdds, fetchProof, filterGames, kickoffLabel, feed,
+  fetchGames, fetchScore, fetchOdds, filterGames, kickoffLabel, feed,
   PHASE_ENDED,
   type Filter, type Game, type LiveScore, type OddsLine,
-} from "./txline"
+} from "./feed"
 import {
-  EXPLORER, EXPLORER_ACCT, OUTCOMES, buildClaimTx, buildCreatePoolTx, buildFaucetTx,
-  buildJoinPoolTx, dailyRootsPda, duelDeadlineMs, duelJoinable, getPool, latestPoolTx, allPools,
-  poolsForFixture, myPick, pickName, shortAddr, verifyProofOnChain, KICKPACT_ID, TXORACLE_ID,
-  type PoolOutcome, type PoolState,
-} from "./solana"
+  EXPLORER, EXPLORER_ACCT, OUTCOMES, claim, createPool, faucet,
+  joinPool, duelDeadlineMs, duelJoinable, getPool, latestPoolTx, allPools,
+  poolsForFixture, myPick, pickName, shortAddr, verifySettlement, KICKPACT_ADDR, ORACLE_SIGNER,
+  type PoolOutcome, type PoolState, type Settlement,
+} from "./injective"
 import * as nearby from "./nearby"
 
 const USDT_ICON = require("../assets/tokens/usdc-icon.png")
 
 // ─────────────────────────────────────────────────────────────── sign in ──
 export function SignInScreen() {
-  const { connect, createBurner, importBurner, confirmBackup, status, mwaAvailable, privyAvailable, loginPrivy } = useWallet()
-  const [busy, setBusy] = useState<"privy" | "connect" | "burner" | "import" | null>(null)
+  const { createBurner, importBurner, confirmBackup, status, privyAvailable, loginPrivy } = useWallet()
+  const [busy, setBusy] = useState<"privy" | "burner" | "import" | null>(null)
   const [secret, setSecret] = useState<string | null>(null)
-  const [showBurner, setShowBurner] = useState(false)
   const [importing, setImporting] = useState(false)
   const [phrase, setPhrase] = useState("")
   const [err, setErr] = useState<string | null>(null)
@@ -53,22 +53,9 @@ export function SignInScreen() {
       const raw = String(e?.message ?? e)
       setErr(
         /native_app_id|not allowed|allowlist/i.test(raw)
-          ? "this build isn't on the Privy allowlist yet — use a wallet or burner below"
-          : `${raw.slice(0, 80)} — you can still use a wallet or burner below`,
+          ? "this build isn't on the Privy allowlist yet — use a burner below"
+          : `${raw.slice(0, 80)} — you can still use a burner below`,
       )
-      setShowBurner(true)
-    } finally {
-      setBusy(null)
-    }
-  }
-  const doConnect = async () => {
-    setBusy("connect")
-    setErr(null)
-    try {
-      await connect()
-    } catch {
-      setErr("couldn't reach a wallet app — install Phantom/Solflare, or use a burner below")
-      setShowBurner(true)
     } finally {
       setBusy(null)
     }
@@ -90,7 +77,7 @@ export function SignInScreen() {
     try {
       await importBurner(phrase)
     } catch {
-      setErr("invalid secret key")
+      setErr("invalid private key")
     } finally {
       setBusy(null)
     }
@@ -101,7 +88,7 @@ export function SignInScreen() {
       <ScrollView contentContainerStyle={s.signWrap}>
         <PixelText size={26} style={{ textAlign: "center" }}>Back up your key</PixelText>
         <PixelText size={11} color={C.white60} style={{ textAlign: "center", marginTop: 8 }} upper={false}>
-          This base58 secret IS your burner wallet. Store it somewhere safe.
+          This 0x private key IS your burner wallet. Store it somewhere safe.
         </PixelText>
         <Panel style={{ padding: 14, marginTop: 18 }}>
           <PixelText size={12} upper={false} style={{ lineHeight: 20 }}>{secret}</PixelText>
@@ -116,7 +103,7 @@ export function SignInScreen() {
       <PixelText size={40} style={{ textAlign: "center" }} upper={false}>⚽️🔒</PixelText>
       <PixelText size={26} style={{ textAlign: "center", marginTop: 10 }}>Ready for the final?</PixelText>
       <PixelText size={10} color={C.ethLight} style={{ textAlign: "center", marginTop: 8 }} tracking={2}>
-        SELF-CUSTODIAL · TXLINE DATA · SOLANA DEVNET
+        SELF-CUSTODIAL · API-FOOTBALL DATA · INJECTIVE EVM
       </PixelText>
 
       {importing ? (
@@ -125,7 +112,7 @@ export function SignInScreen() {
             <TextInput
               value={phrase}
               onChangeText={setPhrase}
-              placeholder="base58 secret key"
+              placeholder="0x private key"
               placeholderTextColor={C.white35}
               multiline
               style={s.input}
@@ -146,54 +133,28 @@ export function SignInScreen() {
                 style={{ marginTop: 26 }}
               />
               <PixelText size={9} color={C.white45} style={{ textAlign: "center", marginTop: 8 }} upper={false}>
-                Email · Google · X · GitHub · LinkedIn — a self-custodial Solana wallet is created for you. No seed phrase.
+                Email · Google · X · GitHub · LinkedIn — a self-custodial Injective wallet is created for you. No seed phrase.
               </PixelText>
               <View style={{ height: 1, backgroundColor: C.white15, marginVertical: 18 }} />
             </>
           )}
 
-          {/* or bring your own wallet */}
-          {mwaAvailable && (
-            <>
-              <PixelButton
-                label={busy === "connect" ? "OPENING WALLET…" : "CONNECT AN EXISTING WALLET"}
-                onPress={doConnect}
-                color={C.importBlue}
-                style={{ marginTop: 0 }}
-              />
-              <PixelText size={9} color={C.white45} style={{ textAlign: "center", marginTop: 8 }} upper={false}>
-                Phantom · Solflare · any Mobile Wallet Adapter wallet — your keys stay in your wallet app
-              </PixelText>
-            </>
-          )}
-
-          {/* FALLBACK — burner, folded away unless needed */}
-          {showBurner || !mwaAvailable ? (
-            <>
-              <View style={{ height: 1, backgroundColor: C.white15, marginVertical: 20 }} />
-              <PixelText size={9} color={C.white45} style={{ textAlign: "center" }} tracking={2}>
-                NO WALLET APP? USE A BURNER
-              </PixelText>
-              <PixelButton
-                label={busy === "burner" ? "…" : "CREATE A BURNER WALLET"}
-                onPress={doCreateBurner}
-                color={C.green}
-                style={{ marginTop: 12 }}
-              />
-              <PixelButton
-                label="IMPORT SECRET KEY"
-                onPress={() => setImporting(true)}
-                color={C.importBlue}
-                style={{ marginTop: 10 }}
-              />
-            </>
-          ) : (
-            <Pressable onPress={() => setShowBurner(true)} style={{ marginTop: 18 }}>
-              <PixelText size={10} color={C.white45} style={{ textAlign: "center" }} upper={false}>
-                or use a burner wallet instead →
-              </PixelText>
-            </Pressable>
-          )}
+          {/* BURNER — always available, and the default when Privy isn't set up */}
+          <PixelText size={9} color={C.white45} style={{ textAlign: "center" }} tracking={2}>
+            {privyAvailable ? "OR USE A BURNER WALLET" : "USE A BURNER WALLET"}
+          </PixelText>
+          <PixelButton
+            label={busy === "burner" ? "…" : "CREATE A BURNER WALLET"}
+            onPress={doCreateBurner}
+            color={C.green}
+            style={{ marginTop: 12 }}
+          />
+          <PixelButton
+            label="IMPORT PRIVATE KEY"
+            onPress={() => setImporting(true)}
+            color={C.importBlue}
+            style={{ marginTop: 10 }}
+          />
         </>
       )}
       {err && (
@@ -205,7 +166,7 @@ export function SignInScreen() {
 
 // ─────────────────────────────────────────────────────────────── header ──
 export function WalletHeader({ onAvatar, onFaucet }: { onAvatar?: () => void; onFaucet?: () => void }) {
-  const { kusd, sol, address } = useWallet()
+  const { kusd, inj, address } = useWallet()
   return (
     <View style={s.header}>
       <Pressable onPress={onAvatar} style={s.avatar}>
@@ -214,7 +175,7 @@ export function WalletHeader({ onAvatar, onFaucet }: { onAvatar?: () => void; on
       <BalanceChip icon={USDT_ICON} amount={`$ ${kusd.toFixed(2)}`} onPressAdd={onFaucet} />
       <View style={{ flex: 1 }} />
       <Panel style={{ paddingHorizontal: 10, paddingVertical: 5 }}>
-        <PixelText size={10} upper={false} color={C.white60}>◎ {sol.toFixed(3)}</PixelText>
+        <PixelText size={10} upper={false} color={C.white60}>{inj.toFixed(3)} INJ</PixelText>
       </Panel>
     </View>
   )
@@ -239,7 +200,9 @@ function GameCard({ g, onPress }: { g: Game; onPress: () => void }) {
     <Pressable onPress={onPress}>
       <Panel style={{ padding: 12, marginBottom: 10, borderColor: live ? C.green : C.panelBorder }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-          <PixelText size={9} color={C.white45} tracking={2}>WORLD CUP</PixelText>
+          <PixelText size={9} color={g.round === "SEMI-FINAL" ? C.gold : C.white45} tracking={2}>
+            {g.round ? `WORLD CUP · ${g.round}` : "WORLD CUP"}
+          </PixelText>
           <PixelText size={9} color={live ? C.greenLight : C.white45} tracking={2} upper={false}>
             {live ? `● ${g.status}` : g.state === "post" ? "FT" : kickoffLabel(g)}
           </PixelText>
@@ -253,7 +216,7 @@ function GameCard({ g, onPress }: { g: Game; onPress: () => void }) {
 
 // ───────────────────────────────────────────────────────────────── home ──
 export function HomeScreen({ onProfile, onGame }: { onProfile?: () => void; onGame: (id: string) => void }) {
-  const { kusd, signAndSend, publicKey, connection, refresh } = useWallet()
+  const { kusd, getSigner, address, refresh } = useWallet()
   const [games, setGames] = useState<Game[]>([])
   const [filter, setFilter] = useState<Filter>("upcoming")
   const [loading, setLoading] = useState(true)
@@ -266,11 +229,11 @@ export function HomeScreen({ onProfile, onGame }: { onProfile?: () => void; onGa
     try {
       setGames(await fetchGames())
       setNote(null)
-      // fetchGames falls back to the captured snapshot rather than throwing —
+      // fetchGames falls back to the bundled snapshot rather than throwing —
       // say so plainly instead of pretending the feed is live.
-      setFeedDown(feed.live ? null : { reason: feed.reason ?? "TxLINE unavailable", capturedAt: feed.capturedAt })
+      setFeedDown(feed.live ? null : { reason: feed.reason ?? "live feed unavailable", capturedAt: feed.capturedAt })
     } catch (e: any) {
-      setNote(`txline: ${String(e.message ?? e).slice(0, 60)}`)
+      setNote(`feed: ${String(e.message ?? e).slice(0, 60)}`)
     } finally {
       setLoading(false)
     }
@@ -282,13 +245,12 @@ export function HomeScreen({ onProfile, onGame }: { onProfile?: () => void; onGa
   }, [load])
 
   const doFaucet = async () => {
-    if (!publicKey || minting) return
+    if (!address || minting) return
     setMinting(true)
     setNote(null)
     try {
-      const tx = await buildFaucetTx(connection, publicKey, 100)
-      const sig = await signAndSend(tx)
-      setNote(`minted 100 kUSD · ${sig.slice(0, 8)}…`)
+      const hash = await faucet(await getSigner(), 100)
+      setNote(`minted 100 kUSD · ${hash.slice(0, 10)}…`)
       refresh()
     } catch (e: any) {
       setNote(String(e.message ?? e).slice(0, 80))
@@ -306,7 +268,7 @@ export function HomeScreen({ onProfile, onGame }: { onProfile?: () => void; onGa
           <PixelText size={9} color={C.white45} tracking={2}>TOTAL BALANCE</PixelText>
           <PixelText size={30} style={{ marginTop: 6 }} upper={false}>$ {kusd.toFixed(2)}</PixelText>
           <PixelText size={9} color={C.white45} style={{ marginTop: 4 }} upper={false}>
-            kUSD · Solana devnet · pools escrowed on-chain
+            kUSD · Injective EVM · pools escrowed on-chain
           </PixelText>
           <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
             <PixelButton label={minting ? "…" : "+ MINT"} onPress={doFaucet} size={12} style={{ flex: 1, paddingVertical: 9 }} />
@@ -317,23 +279,21 @@ export function HomeScreen({ onProfile, onGame }: { onProfile?: () => void; onGa
         </Panel>
 
         <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-          <PixelText size={20}>World Cup</PixelText>
-          <PixelText size={8} color={feedDown ? C.amber : C.white45} tracking={2}>
-            {feedDown ? "TXLINE · CACHED SNAPSHOT" : "TXLINE · PROOFS ON SOLANA"}
+          <PixelText size={20}>Semi-finals</PixelText>
+          <PixelText size={8} color={feedDown ? C.gold : C.white45} tracking={2}>
+            {feedDown ? "WORLD CUP · LAST FOUR" : "API-FOOTBALL · POOLS ON INJECTIVE"}
           </PixelText>
         </View>
 
         {feedDown && (
-          <Panel style={{ padding: 12, marginTop: 10, borderColor: C.amber }}>
-            <PixelText size={9} color={C.amber} tracking={2}>FEED WINDOW CLOSED</PixelText>
+          <Panel style={{ padding: 12, marginTop: 10, borderColor: C.gold }}>
+            <PixelText size={9} color={C.gold} tracking={2}>WORLD CUP · SEMI-FINALS</PixelText>
             <PixelText size={10} color={C.white60} style={{ marginTop: 6 }} upper={false}>
-              {feedDown.reason}
+              The last four. Lock a pick on who reaches the final.
             </PixelText>
             <PixelText size={9} color={C.white45} style={{ marginTop: 8 }} upper={false}>
-              These fixtures are a real snapshot of TxLINE&apos;s feed
-              {feedDown.capturedAt ? ` from ${feedDown.capturedAt.slice(0, 10)}` : ""} — not live, and not invented.
-              Live scores and odds need the feed, but everything on-chain still works: pools, settlement and proof
-              receipts all read from Solana, where the proofs are already anchored.
+              The pot is escrowed on Injective and pays out to the oracle-signed result — the keeper reads the same
+              fixtures, so the pool you open and the score that settles it always agree.
             </PixelText>
           </Panel>
         )}
@@ -371,7 +331,7 @@ function OddsPanel({ odds }: { odds: OddsLine | null }) {
   return (
     <Panel style={{ padding: 12, marginTop: 12 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <PixelText size={9} color={C.white45} tracking={2}>STABLEPRICE ODDS · TXLINE</PixelText>
+        <PixelText size={9} color={C.white45} tracking={2}>1X2 ODDS · API-FOOTBALL</PixelText>
         <PixelText size={8} color={C.white35} upper={false}>{odds.ts ? new Date(odds.ts).toLocaleTimeString() : ""}</PixelText>
       </View>
       <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
@@ -416,26 +376,25 @@ function PickSelector({ g, pick, setPick }: { g: Game; pick: PoolOutcome; setPic
 function PoolCard({
   g, p, onChanged, onReceipt,
 }: { g: Game; p: PoolState; onChanged: () => void; onReceipt: (p: PoolState) => void }) {
-  const { publicKey, connection, signAndSend } = useWallet()
+  const { getSigner, address, connection } = useWallet()
   const [mine, setMine] = useState<{ pick: number; claimed: boolean } | null>(null)
   const [pick, setPick] = useState<PoolOutcome>("home")
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => {
-    if (publicKey) myPick(connection, p.id, publicKey).then(setMine).catch(() => {})
-  }, [publicKey, connection, p.id, p.settled, p.memberCount])
+    if (address) myPick(connection, p.id, address).then(setMine).catch(() => {})
+  }, [address, connection, p.id, p.settled, p.memberCount])
 
   const joinOpen = !p.settled && Date.now() < p.deadlineMs
   const iWon = p.settled && mine && (p.winners === 0 || mine.pick === p.result)
 
   const doJoin = async () => {
-    if (!publicKey || busy) return
+    if (!address || busy) return
     setBusy(true)
     setNote(null)
     try {
-      const tx = await buildJoinPoolTx(connection, publicKey, p.id, pick)
-      await signAndSend(tx)
+      await joinPool(await getSigner(), p.id, pick)
       onChanged()
     } catch (e: any) {
       setNote(String(e.message ?? e).slice(0, 90))
@@ -444,12 +403,11 @@ function PoolCard({
     }
   }
   const doClaim = async () => {
-    if (!publicKey || busy) return
+    if (!address || busy) return
     setBusy(true)
     setNote(null)
     try {
-      const tx = await buildClaimTx(connection, publicKey, p.id)
-      await signAndSend(tx)
+      await claim(await getSigner(), p.id)
       onChanged()
     } catch (e: any) {
       setNote(String(e.message ?? e).slice(0, 90))
@@ -507,7 +465,7 @@ function PoolCard({
 }
 
 export function GameScreen({ gameId, onBack, onReceipt }: { gameId: string; onBack: () => void; onReceipt: (p: PoolState) => void }) {
-  const { publicKey, connection, signAndSend, refresh } = useWallet()
+  const { getSigner, address, connection, refresh } = useWallet()
   const [g, setG] = useState<Game | null>(null)
   const [score, setScore] = useState<LiveScore | null>(null)
   const [odds, setOdds] = useState<OddsLine | null>(null)
@@ -558,7 +516,7 @@ export function GameScreen({ gameId, onBack, onReceipt }: { gameId: string; onBa
   const live = phase >= 2 && phase !== PHASE_ENDED && phase !== 19
 
   const doCreate = async () => {
-    if (!publicKey || busy) return
+    if (!address || busy) return
     const stakeN = Number(stake)
     if (!stakeN || stakeN <= 0) {
       setNote("enter a stake")
@@ -568,9 +526,8 @@ export function GameScreen({ gameId, onBack, onReceipt }: { gameId: string; onBa
     setNote(null)
     try {
       const deadline = Math.max(g.kickoffMs, Date.now() + 60_000)
-      const { tx } = await buildCreatePoolTx(connection, publicKey, g.fixtureId, stakeN, deadline, g.kickoffMs, pick)
-      const sig = await signAndSend(tx)
-      setNote(`pool opened · ${sig.slice(0, 8)}…`)
+      const { hash } = await createPool(await getSigner(), g.fixtureId, stakeN, deadline, g.kickoffMs, pick)
+      setNote(`pool opened · ${hash.slice(0, 10)}…`)
       refresh()
       loadPools()
     } catch (e: any) {
@@ -612,7 +569,7 @@ export function GameScreen({ gameId, onBack, onReceipt }: { gameId: string; onBa
 
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginTop: 18 }}>
         <PixelText size={15}>Group pools</PixelText>
-        <PixelText size={8} color={C.white45} tracking={1}>SETTLED BY TXLINE PROOF</PixelText>
+        <PixelText size={8} color={C.white45} tracking={1}>SETTLED BY ORACLE SIGNATURE</PixelText>
       </View>
       {pools.length === 0 && (
         <PixelText size={10} color={C.white45} style={{ marginTop: 8 }} upper={false}>
@@ -680,7 +637,7 @@ export function ReceiptsScreen({ onOpen }: { onOpen: (p: PoolState) => void }) {
     <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 110 }}>
       <PixelText size={20}>Receipts</PixelText>
       <PixelText size={9} color={C.white45} style={{ marginTop: 4 }} upper={false}>
-        every settlement traces to a TxLINE Merkle proof anchored on Solana
+        every settlement traces to an oracle-signed final score, verified on Injective
       </PixelText>
       {loading ? (
         <ActivityIndicator color={C.eth} style={{ marginTop: 30 }} />
@@ -719,9 +676,8 @@ export function ReceiptsScreen({ onOpen }: { onOpen: (p: PoolState) => void }) {
 export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () => void }) {
   const { connection } = useWallet()
   const [g, setG] = useState<Game | null>(null)
-  const [proof, setProof] = useState<any>(null)
+  const [settlement, setSettlement] = useState<Settlement | null>(null)
   const [txSig, setTxSig] = useState<string | null>(null)
-  const [verify, setVerify] = useState<"idle" | "running" | "true" | "false" | "error">("idle")
 
   useEffect(() => {
     fetchGames().then((all) => setG(all.find((x) => x.fixtureId === Number(pool.fixtureId)) ?? null)).catch(() => {})
@@ -729,30 +685,11 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
   }, [connection, pool])
 
   useEffect(() => {
-    // pull the same proof the settlement used (latest seq)
-    ;(async () => {
-      try {
-        const sc = await fetchScore(Number(pool.fixtureId))
-        if (sc?.seq) setProof(await fetchProof(Number(pool.fixtureId), sc.seq))
-      } catch {}
-    })()
-  }, [pool])
-
-  const doVerify = async () => {
-    if (!proof || !pool.settled) return
-    setVerify("running")
-    try {
-      const outcome = pickName(pool.result)
-      if (!outcome) throw new Error("no result")
-      const ok = await verifyProofOnChain(connection, proof, outcome)
-      setVerify(ok ? "true" : "false")
-    } catch {
-      setVerify("error")
-    }
-  }
-
-  const rootHex = (arr: any) =>
-    Array.isArray(arr) ? arr.slice(0, 8).map((b: number) => b.toString(16).padStart(2, "0")).join("") + "…" : "—"
+    if (!pool.settled) return
+    // Re-verify the receipt from the phone: recover the EIP-712 signer over the
+    // final goals and confirm it is the contract's configured oracle.
+    verifySettlement(connection, pool.id).then(setSettlement).catch(() => {})
+  }, [connection, pool])
 
   return (
     <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 110 }}>
@@ -777,71 +714,56 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
         {txSig && (
           <Pressable onPress={() => Linking.openURL(EXPLORER(txSig))}>
             <PixelText size={9} color={C.ethLight} style={{ marginTop: 8 }} upper={false}>
-              ↗ last pool tx: {txSig.slice(0, 16)}… (explorer)
+              ↗ settle tx: {txSig.slice(0, 16)}… (explorer)
             </PixelText>
           </Pressable>
         )}
       </Panel>
 
       <Panel style={{ padding: 14, marginTop: 12 }}>
-        <PixelText size={9} color={C.white45} tracking={2}>TXLINE MERKLE PROOF</PixelText>
-        {proof ? (
+        <PixelText size={9} color={C.white45} tracking={2}>ORACLE ATTESTATION</PixelText>
+        {pool.settled && settlement ? (
           <>
-            <PixelText size={9} color={C.white60} style={{ marginTop: 8 }} upper={false}>
-              fixture {String(proof.summary?.fixtureId)} · updates {proof.summary?.updateStats?.updateCount} · window{" "}
-              {new Date(proof.summary?.updateStats?.minTimestamp).toLocaleTimeString()}–
-              {new Date(proof.summary?.updateStats?.maxTimestamp).toLocaleTimeString()}
-            </PixelText>
-            <PixelText size={9} color={C.white60} style={{ marginTop: 6 }} upper={false}>
-              stats proven: {(proof.statsToProve ?? []).map((st: any) => `key${st.key}=${st.value}`).join(" · ")}
+            <PixelText size={11} color={C.white60} style={{ marginTop: 8 }} upper={false}>
+              final score signed by the oracle: {settlement.homeGoals}–{settlement.awayGoals}
             </PixelText>
             <PixelText size={9} color={C.white45} style={{ marginTop: 6 }} upper={false}>
-              eventStatRoot {rootHex(proof.eventStatRoot)} · subTree {proof.subTreeProof?.length} nodes · mainTree{" "}
-              {proof.mainTreeProof?.length} node(s)
+              the contract derived {settlement.outcome?.toUpperCase()} from these goals on-chain — the oracle reports
+              the score, the contract decides the outcome.
             </PixelText>
-            <Pressable
-              onPress={() =>
-                Linking.openURL(EXPLORER_ACCT(dailyRootsPda(proof.summary.updateStats.minTimestamp).toBase58()))
-              }
+            <PixelText size={9} color={C.white45} style={{ marginTop: 6 }} upper={false}>
+              oracle signer {shortAddr(settlement.oracleSigner)}
+            </PixelText>
+            <Panel
+              style={{
+                padding: 8,
+                marginTop: 10,
+                alignItems: "center",
+                borderColor: settlement.verified ? C.green : "#a33b3b",
+              }}
             >
-              <PixelText size={9} color={C.ethLight} style={{ marginTop: 8 }} upper={false}>
-                ↗ daily roots PDA (epoch day {Math.floor(proof.summary.updateStats.minTimestamp / 86400000)})
+              <PixelText size={10} color={settlement.verified ? C.green : "#a33b3b"}>
+                {settlement.verified ? "ORACLE SIGNATURE VERIFIED ON-CHAIN ✓" : "—"}
               </PixelText>
-            </Pressable>
-
-            {pool.settled && (
-              <PixelButton
-                label={
-                  verify === "running" ? "VERIFYING…"
-                    : verify === "true" ? "ORACLE CONFIRMS ✓"
-                    : verify === "false" ? "ORACLE REFUTES ✗"
-                    : verify === "error" ? "RETRY VERIFY"
-                    : "VERIFY ON-CHAIN NOW"
-                }
-                color={verify === "true" ? C.green : verify === "false" ? "#a33b3b" : C.eth}
-                onPress={doVerify}
-                size={12}
-                style={{ marginTop: 12 }}
-              />
-            )}
+            </Panel>
           </>
         ) : (
           <PixelText size={9} color={C.white45} style={{ marginTop: 8 }} upper={false}>
-            fetching proof from TxLINE…
+            {pool.settled ? "verifying the oracle signature…" : "no attestation until the pool settles"}
           </PixelText>
         )}
       </Panel>
 
       <Panel style={{ padding: 14, marginTop: 12 }}>
-        <PixelText size={9} color={C.white45} tracking={2}>PROGRAMS</PixelText>
-        <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(KICKPACT_ID.toBase58()))}>
+        <PixelText size={9} color={C.white45} tracking={2}>CONTRACTS</PixelText>
+        <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(KICKPACT_ADDR))}>
           <PixelText size={9} color={C.ethLight} style={{ marginTop: 8 }} upper={false}>
-            ↗ kickpact {shortAddr(KICKPACT_ID.toBase58())}
+            ↗ kickpact {shortAddr(KICKPACT_ADDR)}
           </PixelText>
         </Pressable>
-        <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(TXORACLE_ID.toBase58()))}>
+        <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(ORACLE_SIGNER))}>
           <PixelText size={9} color={C.ethLight} style={{ marginTop: 6 }} upper={false}>
-            ↗ txoracle {shortAddr(TXORACLE_ID.toBase58())} (TxLINE)
+            ↗ oracle signer {shortAddr(ORACLE_SIGNER)}
           </PixelText>
         </Pressable>
       </Panel>
@@ -851,7 +773,7 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
 
 // ────────────────────────────────────────────────────────────── profile ──
 export function ProfileScreen() {
-  const { address, sol, kusd, mode, logout, getSecret } = useWallet()
+  const { address, inj, kusd, mode, logout, getSecret } = useWallet()
   const [secret, setSecret] = useState<string | null>(null)
 
   return (
@@ -862,7 +784,7 @@ export function ProfileScreen() {
         {address && <QRCode value={address} size={140} />}
         <PixelText size={10} style={{ marginTop: 10 }} upper={false}>{address}</PixelText>
         <PixelText size={9} color={C.white45} style={{ marginTop: 4 }}>
-          {mode === "mwa" ? "CONNECTED VIA MOBILE WALLET ADAPTER" : "BURNER · KEY IN DEVICE KEYCHAIN"}
+          {mode === "privy" ? "PRIVY · EMBEDDED EVM WALLET" : "BURNER · KEY IN DEVICE KEYCHAIN"}
         </PixelText>
       </Panel>
 
@@ -872,11 +794,11 @@ export function ProfileScreen() {
           <PixelText size={11} upper={false}>$ {kusd.toFixed(2)}</PixelText>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-          <PixelText size={11} upper={false}>SOL (devnet gas)</PixelText>
-          <PixelText size={11} upper={false}>◎ {sol.toFixed(4)}</PixelText>
+          <PixelText size={11} upper={false}>INJ (gas)</PixelText>
+          <PixelText size={11} upper={false}>{inj.toFixed(4)} INJ</PixelText>
         </View>
         <PixelText size={8} color={C.white45} style={{ marginTop: 8 }} upper={false}>
-          need gas? solana airdrop 1 {shortAddr(address)} -u devnet
+          need gas? testnet.faucet.injective.network → {shortAddr(address)}
         </PixelText>
       </Panel>
 
@@ -904,7 +826,7 @@ export function ProfileScreen() {
 
 // ──────────────────────────────────────────────────────────────── duels ──
 // A "duel" is a group pot: friends stake the same kUSD on a match and pick an
-// outcome — settled trustlessly by TxLINE. They gather two ways: over Bluetooth
+// outcome — settled by an oracle-signed final score. They gather two ways: over Bluetooth
 // (in person, with live chat) or by an online code (from anywhere).
 
 async function requestNearbyPerms(): Promise<boolean> {
@@ -950,7 +872,7 @@ export function DuelsScreen({ onGame, onReceipt }: { onGame: (id: string) => voi
     <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 110 }}>
       <PixelText size={20}>Duels</PixelText>
       <PixelText size={9} color={C.white45} style={{ marginTop: 4 }} upper={false}>
-        pot up with friends on a match — everyone stakes, winners split, TxLINE settles it
+        pot up with friends on a match — everyone stakes, winners split, an oracle-signed score settles it
       </PixelText>
 
       <Pressable onPress={() => setView("nearby")}>
@@ -974,7 +896,7 @@ export function DuelsScreen({ onGame, onReceipt }: { onGame: (id: string) => voi
       </Pressable>
 
       <PixelText size={8} color={C.white35} style={{ marginTop: 16 }} upper={false}>
-        The money always lives on Solana — Bluetooth/online only carry the chat and the invite. Multiple friends can join one pot.
+        The money always lives on Injective — Bluetooth/online only carry the chat and the invite. Multiple friends can join one pot.
       </PixelText>
     </ScrollView>
   )
@@ -989,7 +911,7 @@ interface ChatLine {
 }
 
 function NearbyDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: string) => void }) {
-  const { publicKey, connection, signAndSend, address } = useWallet()
+  const { getSigner, address } = useWallet()
   const myName = address ? address.slice(0, 6) : "me"
 
   const [ready, setReady] = useState<"idle" | "starting" | "on" | "unsupported">("idle")
@@ -1104,15 +1026,14 @@ function NearbyDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
   }
 
   const startDuel = async () => {
-    if (!publicKey || !fixture || busy) return
+    if (!address || !fixture || busy) return
     const stakeN = Number(stake)
     if (!stakeN) return setNote("enter a stake")
     setBusy(true)
     setNote(null)
     try {
       const deadline = duelDeadlineMs(fixture.kickoffMs)
-      const { tx, poolId } = await buildCreatePoolTx(connection, publicKey, fixture.fixtureId, stakeN, deadline, fixture.kickoffMs, pick)
-      await signAndSend(tx)
+      const { poolId } = await createPool(await getSigner(), fixture.fixtureId, stakeN, deadline, fixture.kickoffMs, pick)
       const d = { t: "duel" as const, poolId: String(poolId), fixtureId: fixture.fixtureId, stake: stakeN, host: address! }
       setDuel(d)
       setMyPick(pick) // create_pool already staked us on this side
@@ -1126,21 +1047,19 @@ function NearbyDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
   }
 
   const joinDuel = async (dpick: PoolOutcome) => {
-    if (!publicKey || !duel || busy) return
+    if (!address || !duel || busy) return
     setBusy(true)
     setNote(null)
     try {
-      const tx = await buildJoinPoolTx(connection, publicKey, BigInt(duel.poolId), dpick)
-      await signAndSend(tx)
+      await joinPool(await getSigner(), BigInt(duel.poolId), dpick)
       setMyPick(dpick)
       say({ from: myName, text: `joined the pot · picked ${dpick.toUpperCase()}`, system: true })
       nearby.broadcast(peerIds, { t: "chat", from: myName, text: `I'm in — ${dpick.toUpperCase()}`, at: Date.now() })
     } catch (e: any) {
-      // The program rejects a second entry from the same wallet (the member PDA
-      // already exists). Raw simulation text tells the user nothing.
+      // The contract rejects a second entry from the same wallet (AlreadyJoined).
       const raw = String(e?.message ?? e)
       setNote(
-        /already in use|custom program error: 0x0/.test(raw)
+        /AlreadyJoined|already/i.test(raw)
           ? "you're already in this pot — one entry per wallet"
           : raw.slice(0, 90),
       )
@@ -1264,7 +1183,7 @@ function NearbyDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
 
 // ── Online duel by code ─────────────────────────────────────────────────────
 function OnlineDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: string) => void }) {
-  const { publicKey, connection, signAndSend } = useWallet()
+  const { getSigner, address, connection } = useWallet()
   const [tab, setTab] = useState<"create" | "join">("create")
   const [games, setGames] = useState<Game[]>([])
   const [fixture, setFixture] = useState<Game | null>(null)
@@ -1290,15 +1209,14 @@ function OnlineDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
   }, [])
 
   const doCreate = async () => {
-    if (!publicKey || !fixture || busy) return
+    if (!address || !fixture || busy) return
     const stakeN = Number(stake)
     if (!stakeN) return setNote("enter a stake")
     setBusy(true)
     setNote(null)
     try {
       const deadline = duelDeadlineMs(fixture.kickoffMs)
-      const { tx, poolId } = await buildCreatePoolTx(connection, publicKey, fixture.fixtureId, stakeN, deadline, fixture.kickoffMs, pick)
-      await signAndSend(tx)
+      const { poolId } = await createPool(await getSigner(), fixture.fixtureId, stakeN, deadline, fixture.kickoffMs, pick)
       setCreated({ poolId: String(poolId), fixtureId: fixture.fixtureId })
     } catch (e: any) {
       setNote(String(e?.message ?? e).slice(0, 120))
@@ -1308,7 +1226,7 @@ function OnlineDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
   }
 
   const doJoin = async () => {
-    if (!publicKey || busy) return
+    if (!address || busy) return
     const id = code.trim().replace(/[^0-9]/g, "")
     if (!id) return setNote("enter a duel code")
     setBusy(true)
@@ -1316,18 +1234,17 @@ function OnlineDuel({ onBack, onGame }: { onBack: () => void; onGame: (id: strin
     try {
       const p = await getPool(connection, BigInt(id)) // validates it exists
       if (p.deadlineMs <= Date.now()) throw new Error("DEADLINE_PASSED")
-      const tx = await buildJoinPoolTx(connection, publicKey, p.id, joinPickState)
-      await signAndSend(tx)
+      await joinPool(await getSigner(), p.id, joinPickState)
       setNote(`joined duel #${id} · picked ${joinPickState.toUpperCase()}`)
       onGame(String(p.fixtureId))
     } catch (e: any) {
-      // Raw "Simulation failed" tells nobody anything. The two ways a join
-      // legitimately bounces are a closed window and a second entry.
+      // The two ways a join legitimately bounces are a closed window and a
+      // second entry from the same wallet.
       const raw = String(e?.message ?? e)
       setNote(
         raw === "DEADLINE_PASSED"
           ? `duel #${id}'s join window has closed`
-          : /already in use|custom program error: 0x0/.test(raw)
+          : /AlreadyJoined|already/i.test(raw)
             ? "you're already in this pot — one entry per wallet"
             : raw.slice(0, 120),
       )

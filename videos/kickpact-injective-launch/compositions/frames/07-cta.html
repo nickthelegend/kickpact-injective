@@ -1,0 +1,307 @@
+<template>
+  <style>
+    /* ---- 07-cta · end card · 1920x1080 (16:9) · Cobalt Grid (navy + periwinkle) ----
+       Landscape re-composition of _portrait/07-cta.html: same copy / timings / motion,
+       re-laid-out wide as a centered end-card on the grid ground. Type retuned to cqw
+       against 1920. Keyword DATA lands in the PERIWINKLE accent (opacity + glow, per
+       frame.md "emphasis from opacity, never from color"); gold is the single CTA-pulse
+       touch only. Content held above the bottom ~170px caption band. */
+    @font-face {
+      font-family: "KickpactPixel";
+      src: url("assets/fonts/KickpactPixel.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    /* Root: styled by #root (never a class). Container establishes cqw/cqh. */
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      font-family: "KickpactPixel", monospace;
+    }
+
+    /* ---- full-bleed ground (navy + permanent graph-paper grid) — on a clip, not #root ---- */
+    .f07-ground {
+      position: absolute;
+      inset: 0;
+      background-color: #10162e;
+      /* permanent ~2cqw graph-paper grid + a soft central lift so the lockup reads first */
+      background-image:
+        linear-gradient(to right, rgba(98, 126, 234, 0.12) 0 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(98, 126, 234, 0.12) 0 1px, transparent 1px),
+        radial-gradient(70cqw 95cqh at 50% 38%, rgba(27, 37, 72, 0.6) 0%, rgba(16, 22, 46, 0) 62%);
+      background-size: 2cqw 2cqw, 2cqw 2cqw, 100% 100%;
+      background-repeat: repeat, repeat, no-repeat;
+    }
+
+    /* ---- framing hairlines (wide, architectural) ---- */
+    .f07-hair {
+      position: absolute;
+      left: 5%;
+      right: 5%;
+      height: 2px;
+      background: #627eea;
+      transform-origin: left center;
+    }
+    .f07-hair-top { top: 16.5%; }
+    .f07-hair-bot { top: 79.5%; transform-origin: right center; }
+
+    /* ---- top mono chrome ---- */
+    .f07-kicker {
+      position: absolute;
+      top: 12.5%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.85cqw;
+      letter-spacing: 0.3em;
+      color: #8aa0f5;
+    }
+
+    /* ---- hero wordmark (pixel-glitch reform) ---- */
+    .f07-wordmark-row {
+      position: absolute;
+      top: 26%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .f07-glitch {
+      display: grid;
+      line-height: 0.9;
+    }
+    .f07-glitch > span {
+      grid-area: 1 / 1;
+      font-size: 9cqw;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .f07-base { color: #627eea; z-index: 2; }
+    .f07-ghost {
+      z-index: 1;
+      opacity: 0;
+      will-change: transform;
+      mix-blend-mode: screen;
+    }
+    .f07-ghost.warm { color: #8aa0f5; }
+    .f07-ghost.cool { color: #627eea; }
+
+    /* ---- tagline ---- */
+    .f07-predict {
+      position: absolute;
+      top: 45%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 2.4cqw;
+      letter-spacing: 0.02em;
+      color: #8aa0f5;
+    }
+
+    /* ---- conviction line — keyword DATA lands in the periwinkle accent ---- */
+    .f07-decides {
+      position: absolute;
+      top: 53.5%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 0.7cqw;
+      font-size: 2cqw;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    /* neighbours dimmed so DATA reads as the accent (opacity, not a second hue) */
+    .f07-dec-word { color: #627eea; opacity: 0.5; }
+    .f07-data {
+      color: #627eea;
+      text-shadow: 0 0 20px rgba(98, 126, 234, 0.55);
+    }
+
+    /* ---- accent CTA block ---- */
+    .f07-cta {
+      position: absolute;
+      top: 62.5%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .f07-cta-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+    .f07-cta-glow {
+      position: absolute;
+      inset: 0;
+      box-shadow: 0 0 56px 8px rgba(232, 184, 75, 0.9);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .f07-cta-btn {
+      position: relative;
+      font-size: 1.9cqw;
+      letter-spacing: 0.15em;
+      color: #627eea;
+      border: 2px solid #627eea;
+      background: #151837;
+      padding: 1.2cqw 2.6cqw;
+      text-transform: uppercase;
+    }
+
+    /* ---- proof footer (wide mono chrome) ---- */
+    .f07-footer {
+      position: absolute;
+      top: 74%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 1.8cqw;
+      font-size: 0.95cqw;
+      letter-spacing: 0.2em;
+      color: #8aa0f5;
+    }
+    .f07-foot-sep { color: #627eea; opacity: 0.55; }
+  </style>
+
+  <div id="root" data-composition-id="07-cta" data-width="1920" data-height="1080">
+    <!-- ground: navy + permanent grid + central lift -->
+    <div id="f07-ground" class="clip f07-ground" data-start="0" data-duration="3.221" data-track-index="0"></div>
+
+    <!-- framing hairlines (draw) -->
+    <div id="f07-hair-top" class="clip f07-hair f07-hair-top" data-start="0" data-duration="3.221" data-track-index="1"></div>
+    <div id="f07-hair-bot" class="clip f07-hair f07-hair-bot" data-start="0" data-duration="3.221" data-track-index="2"></div>
+
+    <!-- top chrome -->
+    <div id="f07-kicker" class="clip f07-kicker" data-start="0" data-duration="3.221" data-track-index="3">
+      WORLD CUP PREDICTION POOLS
+    </div>
+
+    <!-- hero wordmark -->
+    <div id="f07-wordmark" class="clip f07-wordmark-row" data-start="0" data-duration="3.221" data-track-index="4">
+      <div class="f07-glitch">
+        <span class="f07-ghost warm" aria-hidden="true">Kickpact</span>
+        <span class="f07-ghost cool" aria-hidden="true">Kickpact</span>
+        <span class="f07-base">Kickpact</span>
+      </div>
+    </div>
+
+    <!-- tagline -->
+    <div id="f07-predict" class="clip f07-predict" data-start="0" data-duration="3.221" data-track-index="5">
+      Predict together.
+    </div>
+
+    <!-- conviction / keyword -->
+    <div id="f07-decides" class="clip f07-decides" data-start="0" data-duration="3.221" data-track-index="6">
+      <span class="f07-dec-word">The</span>
+      <span class="f07-data">data</span>
+      <span class="f07-dec-word">decides.</span>
+    </div>
+
+    <!-- accent CTA -->
+    <div id="f07-cta" class="clip f07-cta" data-start="0" data-duration="3.221" data-track-index="7">
+      <div class="f07-cta-wrap">
+        <div class="f07-cta-glow"></div>
+        <div class="f07-cta-btn">Get the app &middot; on Injective</div>
+      </div>
+    </div>
+
+    <!-- proof footer -->
+    <div id="f07-footer" class="clip f07-footer" data-start="0" data-duration="3.221" data-track-index="8">
+      <span class="f07-foot-seg">SELF-CUSTODIAL</span>
+      <span class="f07-foot-seg f07-foot-sep">&middot;</span>
+      <span class="f07-foot-seg">ORACLE-SIGNED</span>
+      <span class="f07-foot-seg f07-foot-sep">&middot;</span>
+      <span class="f07-foot-seg">INJECTIVE EVM</span>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      var root = document.querySelector('[data-composition-id="07-cta"]');
+      var $ = function (s) { return root.querySelector(s); };
+      var $$ = function (s) { return Array.prototype.slice.call(root.querySelectorAll(s)); };
+
+      // ---- framing hairlines draw in (from opposite ends) ----
+      tl.fromTo($(".f07-hair-top"), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 0.1);
+      tl.fromTo($(".f07-hair-bot"), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 0.16);
+
+      // ---- top chrome ----
+      tl.fromTo($(".f07-kicker"), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.36, ease: "power2.out" }, 0.2);
+
+      // ---- hero wordmark: re-forms center with a one-frame pixel-glitch ----
+      var stack = $(".f07-glitch");
+      var ghosts = $$(".f07-ghost");
+      // glitch-stretch entrance — the word is simply THERE, sharp, by ~0.5s
+      tl.fromTo(stack, { opacity: 0, scaleX: 1.16 }, { opacity: 1, scaleX: 1, duration: 0.42, ease: "power4.out" }, 0.2);
+
+      // deterministic RGB-split envelope (pure fn of quantized timeline time — seek-safe)
+      var GLITCH_START = 0.24, GLITCH_DUR = 0.42, JITTER_STEP = 1 / 18, MAX_SPLIT = 9;
+      var glitchHash = function (n) {
+        var x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+        return x - Math.floor(x);
+      };
+      var amp = { a: 0 };
+      tl.set(amp, { a: 1 }, GLITCH_START);
+      tl.set(ghosts, { opacity: 0.7 }, GLITCH_START);
+      tl.to(amp, {
+        a: 0,
+        duration: GLITCH_DUR,
+        ease: "power3.in",
+        onUpdate: function () {
+          var step = Math.floor(tl.time() / JITTER_STEP); // quantized = the stutter
+          for (var i = 0; i < ghosts.length; i++) {
+            var jx = (glitchHash(step * 13 + i * 7) * 2 - 1) * MAX_SPLIT * amp.a;
+            var jy = (glitchHash(step * 29 + i * 11) * 2 - 1) * MAX_SPLIT * 0.35 * amp.a;
+            gsap.set(ghosts[i], { x: jx, y: jy });
+          }
+        }
+      }, GLITCH_START);
+      // clamp the clean rest state — never trust the decay to land on exactly zero
+      tl.set(ghosts, { x: 0, y: 0, opacity: 0 }, GLITCH_START + GLITCH_DUR);
+
+      // ---- tagline ----
+      tl.fromTo($(".f07-predict"), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.46, ease: "power2.out" }, 0.85);
+
+      // ---- conviction scaffold ("The ___ decides.") ----
+      tl.fromTo($$(".f07-dec-word"), { opacity: 0, y: 12 }, { opacity: 0.5, y: 0, duration: 0.4, stagger: 0.09, ease: "power2.out" }, 1.5);
+
+      // ---- accent CTA enters ----
+      tl.fromTo($(".f07-cta"), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.44, ease: "power2.out" }, 1.55);
+
+      // ---- proof footer ticks in ----
+      tl.fromTo($$(".f07-foot-seg"), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.36, stagger: 0.06, ease: "power2.out" }, 1.9);
+
+      // ---- CTA: a single gold pulse (out-and-back, no yoyo/repeat) ----
+      var wrap = $(".f07-cta-wrap"), glow = $(".f07-cta-glow"), btn = $(".f07-cta-btn");
+      tl.to(wrap, { scale: 1.055, duration: 0.2, ease: "power2.out" }, 2.05);
+      tl.to(glow, { opacity: 0.65, duration: 0.2, ease: "power2.out" }, 2.05);
+      tl.to(btn, { borderColor: "#e8b84b", duration: 0.2, ease: "power2.out" }, 2.05);
+      tl.to(wrap, { scale: 1.0, duration: 0.32, ease: "power2.inOut" }, 2.25);
+      tl.to(glow, { opacity: 0, duration: 0.34, ease: "power2.inOut" }, 2.25);
+      tl.to(btn, { borderColor: "#627eea", duration: 0.34, ease: "power2.inOut" }, 2.25);
+
+      // ---- keyword DATA lands last, in the periwinkle accent (scale-in + CSS glow) ----
+      tl.fromTo($(".f07-data"), { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.36, ease: "back.out(2.2)" }, 2.42);
+
+      // ---- hold the composed state to the end, ending on the wordmark (barely-perceptible settle) ----
+      tl.to(stack, { scale: 1.008, duration: 0.42, ease: "sine.out" }, 2.8);
+
+      window.__timelines["07-cta"] = tl;
+    })();
+  </script>
+</template>

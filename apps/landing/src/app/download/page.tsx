@@ -23,7 +23,7 @@ const POINTER = "https://raw.githubusercontent.com/nickthelegend/kickpact/solana
 const SHOTS: [string, string][] = [
   ["sol-00-connect", "Connect a real wallet"],
   ["sol-01-home", "Home — kUSD + live fixtures"],
-  ["sol-02-match", "Match — TxLINE odds + pools"],
+  ["sol-02-match", "Match — API-Football odds + pools"],
   ["sol-04-duels", "Duels — Bluetooth or online"],
   ["sol-05-nearby-room", "Nearby room — chat + pot up"],
   ["sol-06-online-duel", "Duel code — share it anywhere"],
@@ -77,7 +77,7 @@ export default function DownloadPage() {
           <div className="font-pixel text-[10px] tracking-widest text-[#8aa0f5] mb-4">GET KICKPACT</div>
           <h1 className="font-display text-4xl md:text-5xl text-white">Grab the app</h1>
           <p className="text-white/55 mt-4 max-w-xl mx-auto">
-            Android and desktop, on Solana devnet, fed by live TxLINE World Cup data. Bluetooth duels need two phones in the same room — that&apos;s the fun part.
+            Android and desktop, on Injective EVM testnet, fed by live API-Football World Cup data. Bluetooth duels need two phones in the same room — that&apos;s the fun part.
           </p>
         </motion.div>
       </section>
@@ -93,7 +93,7 @@ export default function DownloadPage() {
               <span className="font-pixel text-[9px] tracking-widest text-[#e8b84b] uppercase">the full app</span>
             </div>
             <p className="text-white/55 text-sm leading-relaxed mt-3 flex-1">
-              The only client with Bluetooth duels and Mobile Wallet Adapter — connect a real wallet, pot up with the friends in the room, and watch a pool settle itself off a TxLINE proof.
+              The only client with Bluetooth duels and an in-app EVM wallet — sign in or connect a wallet, pot up with the friends in the room, and watch a pool settle itself off an oracle-signed score.
             </p>
             <Link href={apk} target="_blank" className="mt-5">
               <Button className="w-full font-pixel text-xs tracking-wider bg-[#627eea] hover:bg-[#8aa0f5] text-white rounded-xl py-6 transition-all hover:shadow-[0_0_18px_rgba(98,126,234,0.5)]">
@@ -101,7 +101,7 @@ export default function DownloadPage() {
               </Button>
             </Link>
             <div className="font-pixel text-[9px] tracking-widest text-white/35 text-center mt-3 uppercase">
-              arm64 · io.kickpact.app · devnet
+              arm64 · io.kickpact.app · injective testnet
             </div>
           </motion.div>
 
@@ -114,7 +114,7 @@ export default function DownloadPage() {
               <span className="font-pixel text-[9px] tracking-widest text-[#e8b84b] uppercase">mac · win · linux</span>
             </div>
             <p className="text-white/55 text-sm leading-relaxed mt-3 flex-1">
-              The same client, packaged with Electron — wallet, live TxLINE odds, pools, duel codes and proof receipts. Bluetooth duels stay on the phone.
+              The same client, packaged with Electron — wallet, live API-Football odds, pools, duel codes and proof receipts. Bluetooth duels stay on the phone.
             </p>
             <Link href={links.mac} target="_blank" className="mt-5">
               <Button className="w-full font-pixel text-xs tracking-wider bg-[#e8b84b] hover:bg-[#f3cd72] text-[#10162e] rounded-xl py-6 transition-all">
@@ -144,7 +144,7 @@ export default function DownloadPage() {
           <div className="flex-1">
             <div className="font-pixel text-xs tracking-wide text-white">Don&apos;t want to install anything?</div>
             <p className="text-white/50 text-sm mt-1">
-              The dashboard runs in any browser — live odds, every pool on devnet, and a receipts explorer that re-runs the oracle&apos;s proof check right there.
+              The dashboard runs in any browser — live odds, every pool on Injective, and a receipts explorer that re-checks the oracle&apos;s signature right there.
             </p>
           </div>
           <Link href={DASHBOARD} target="_blank">
@@ -165,8 +165,8 @@ export default function DownloadPage() {
         <div className="kp-panel p-5 mt-8">
           <div className="font-pixel text-[10px] tracking-widest text-[#8aa0f5] mb-2">FIRST RUN</div>
           <ol className="text-white/55 text-sm leading-relaxed list-decimal pl-5 space-y-1">
-            <li>Connect a Mobile Wallet Adapter wallet (Phantom/Solflare), or tap through to a burner.</li>
-            <li>Hit <span className="text-white">MINT</span> for testnet kUSD. Need devnet SOL for gas? <code className="text-[#8aa0f5] text-xs">solana airdrop 1 &lt;you&gt; -u devnet</code></li>
+            <li>Sign in for an embedded wallet, connect MetaMask or any EVM wallet, or tap through to a burner.</li>
+            <li>Hit <span className="text-white">MINT</span> for testnet kUSD. Need testnet INJ for gas? <code className="text-[#8aa0f5] text-xs">testnet.faucet.injective.network</code></li>
             <li>Open a match, start a pool — or head to Duels and find a friend over Bluetooth.</li>
           </ol>
         </div>
@@ -175,7 +175,7 @@ export default function DownloadPage() {
       {/* real screens */}
       <section className="max-w-6xl mx-auto px-4 pb-24">
         <h2 className="font-display text-3xl text-white text-center mb-3">Real screens, real chain</h2>
-        <p className="text-center text-white/50 mb-10">Captured from the release build against Solana devnet.</p>
+        <p className="text-center text-white/50 mb-10">Captured from the release build against Injective EVM testnet.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {SHOTS.map(([s, label]) => (
             <div key={s} className="text-center">

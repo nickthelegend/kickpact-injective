@@ -1,0 +1,586 @@
+<template id="03-mechanism-template" data-composition-id="03-mechanism" data-width="1920" data-height="1080">
+  <style>
+    /* ── 03-mechanism · Cobalt Grid (navy ground + periwinkle ink) — 16:9 ──
+       Horizontal LEFT→RIGHT node flow: friends → equal stakes → ESCROW vault
+       on Injective → oracle signs 2–1 → vault flips to WINNER payout on-chain.
+       KickpactPixel (shipped .ttf) for display + generic monospace for chrome. */
+    @font-face {
+      font-family: "KickpactPixel";
+      src: url("assets/fonts/KickpactPixel.ttf") format("truetype");
+      font-weight: 400;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      font-family: "KickpactPixel", ui-monospace, monospace;
+      color: #627eea;
+      --paper: #10162e;
+      --paper2: #1b2548;
+      --ink: #627eea;
+      --ink-soft: #8aa0f5;
+      --grid: rgba(98, 126, 234, 0.12);
+      --faint: rgba(98, 126, 234, 0.22);
+      --gold: #e8b84b;
+      --success: #54c468;
+    }
+
+    /* ── full-bleed ground: navy field + permanent graph-paper grid
+          (authored on dedicated clips, never on #root) ── */
+    .m3-ground {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: var(--paper);
+    }
+    .m3-grid {
+      position: absolute;
+      inset: -2%;
+      z-index: 0;
+      background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 2.1cqw 2.1cqw;
+    }
+    .m3-glow {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: radial-gradient(ellipse 60% 42% at 46% 44%, rgba(98, 126, 234, 0.17), transparent 66%);
+    }
+    .m3-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: radial-gradient(ellipse 84% 82% at 50% 44%, transparent 52%, rgba(4, 7, 20, 0.62) 100%);
+    }
+
+    /* ── chrome: framing hairlines + labels ── */
+    .m3-hl {
+      position: absolute;
+      left: 4cqw;
+      right: 4cqw;
+      height: 2px;
+      background: var(--ink);
+      box-shadow: 0 0 10px rgba(98, 126, 234, 0.35);
+      z-index: 9;
+    }
+    .m3-hl-top { top: 8.5cqh; transform-origin: 0% 50%; transform: scaleX(0); }
+    .m3-hl-bot { top: 82cqh; transform-origin: 100% 50%; transform: scaleX(0); }
+
+    .m3-eyebrow {
+      position: absolute;
+      left: 4cqw;
+      top: 5.2cqh;
+      font-family: ui-monospace, monospace;
+      font-size: 1.15cqw;
+      font-weight: 600;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0;
+      z-index: 9;
+    }
+    .m3-pagenum {
+      position: absolute;
+      right: 4cqw;
+      top: 5.2cqh;
+      font-family: ui-monospace, monospace;
+      font-size: 1.05cqw;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      color: var(--ink-soft);
+      opacity: 0;
+      z-index: 9;
+    }
+    .m3-qr {
+      position: absolute;
+      left: 4cqw;
+      top: 73cqh;
+      width: 3.4cqw;
+      height: 6cqh;
+      display: grid;
+      opacity: 0;
+      z-index: 9;
+    }
+
+    /* ── stage 1 · two friends (pixel avatars, stacked, left) ── */
+    .m3-avatar {
+      position: absolute;
+      width: 5.6cqw;
+      height: 10cqh;
+      background: var(--paper2);
+      border: 2px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 6;
+    }
+    .m3-avA { left: 5cqw; top: 30cqh; }
+    .m3-avB { left: 5cqw; top: 48cqh; }
+    .m3-tex { display: grid; }
+
+    .m3-nlabel {
+      position: absolute;
+      left: 3.8cqw;
+      width: 8cqw;
+      text-align: center;
+      font-size: 1.4cqw;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      opacity: 0;
+      z-index: 7;
+    }
+    .m3-labA { top: 26.4cqh; }
+    .m3-labB { top: 58.6cqh; }
+
+    /* ── stage 2 · equal stake chips (10 kUSD) ── */
+    .m3-chip {
+      position: absolute;
+      width: 6cqw;
+      height: 5.4cqh;
+      background: var(--paper2);
+      border: 2px solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 3;
+    }
+    .m3-chip b {
+      font-weight: 400;
+      font-size: 1.8cqw;
+      line-height: 1;
+      color: var(--ink);
+    }
+    .m3-chip span {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8cqw;
+      letter-spacing: 0.12em;
+      color: var(--ink-soft);
+      margin-top: 0.4cqh;
+    }
+    .m3-chipA { left: 11cqw; top: 32cqh; }
+    .m3-chipB { left: 11cqw; top: 50cqh; }
+
+    /* ── connectors: drawn hairlines (left→right) ── */
+    .m3-conn { position: absolute; background: var(--ink); z-index: 2; }
+    .m3-stubA { left: 10.6cqw; top: 34.9cqh; width: 5cqw; height: 3px; transform-origin: left center; transform: scaleX(0); }
+    .m3-stubB { left: 10.6cqw; top: 52.9cqh; width: 5cqw; height: 3px; transform-origin: left center; transform: scaleX(0); }
+    .m3-merge { left: 15.5cqw; top: 35cqh; width: 3px; height: 18cqh; transform-origin: center top; transform: scaleY(0); }
+    .m3-bus { left: 15.5cqw; top: 43.9cqh; width: 13.5cqw; height: 3px; transform-origin: left center; transform: scaleX(0); }
+    .m3-ocon { left: 39cqw; top: 25cqh; width: 3px; height: 6cqh; background: var(--gold); transform-origin: center top; transform: scaleY(0); }
+    .m3-wbus { left: 49cqw; top: 43.9cqh; width: 9cqw; height: 3px; background: var(--success); transform-origin: left center; transform: scaleX(0); }
+
+    /* ── stage 3 · escrow vault (flip container, hero, center) ── */
+    .m3-vault {
+      position: absolute;
+      left: 29cqw;
+      top: 31cqh;
+      width: 20cqw;
+      height: 26cqh;
+      perspective: 1400px;
+      opacity: 0;
+      z-index: 6;
+    }
+    .m3-vault-inner {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+    .m3-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      background: var(--paper2);
+      border: 2px solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .m3-front { transform: rotateY(0deg); }
+    .m3-back {
+      transform: rotateY(180deg);
+      justify-content: center;
+      border-color: var(--success);
+    }
+    /* pixel corner ticks — vault framing */
+    .m3-front::before,
+    .m3-front::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--ink);
+    }
+    .m3-front::before { left: 10px; top: 10px; border-right: 0; border-bottom: 0; }
+    .m3-front::after { right: 10px; bottom: 10px; border-left: 0; border-top: 0; }
+
+    .m3-vault-hd {
+      font-size: 1.6cqw;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-top: 2.6cqh;
+      opacity: 0;
+    }
+    .m3-lock { margin-top: 1.8cqh; display: grid; opacity: 0; }
+    .m3-stamp {
+      position: absolute;
+      bottom: 2.4cqh;
+      left: 50%;
+      width: 13cqw;
+      margin-left: -6.5cqw;
+      box-sizing: border-box;
+      padding: 0.7cqh 0;
+      text-align: center;
+      font-size: 1.35cqw;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: rgba(98, 126, 234, 0.08);
+      border: 2px solid var(--ink);
+      opacity: 0;
+    }
+    .m3-win-hd {
+      font-size: 3cqw;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--success);
+      line-height: 1;
+      opacity: 0;
+    }
+    .m3-win-tick {
+      font-family: ui-monospace, monospace;
+      font-size: 1.15cqw;
+      letter-spacing: 0.18em;
+      color: var(--success);
+      margin-top: 1.6cqh;
+      opacity: 0;
+    }
+
+    /* ── stage 4 · oracle node (above the line) + signed score ── */
+    .m3-oracle {
+      position: absolute;
+      left: 34cqw;
+      top: 12cqh;
+      width: 10cqw;
+      height: 13cqh;
+      background: var(--paper2);
+      border: 2px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 6;
+    }
+    .m3-otex { display: grid; }
+    .m3-oralabel {
+      position: absolute;
+      left: 34cqw;
+      width: 10cqw;
+      top: 9.4cqh;
+      text-align: center;
+      font-size: 1.4cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      opacity: 0;
+      z-index: 7;
+    }
+    .m3-signs {
+      position: absolute;
+      left: 44.5cqw;
+      top: 17cqh;
+      font-family: ui-monospace, monospace;
+      font-size: 1.1cqw;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0;
+      z-index: 7;
+    }
+    .m3-schip {
+      position: absolute;
+      left: 36.5cqw;
+      top: 25.5cqh;
+      width: 5cqw;
+      height: 5cqh;
+      background: var(--paper);
+      border: 2px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4cqw;
+      opacity: 0;
+      z-index: 5;
+    }
+    .m3-schip b { font-family: ui-monospace, monospace; font-weight: 600; font-size: 1.4cqw; color: var(--ink-soft); }
+    .m3-schip i { font-style: normal; font-size: 1cqw; color: var(--gold); }
+
+    /* ── stage 5 · winner payout panel (right) ── */
+    .m3-winpanel {
+      position: absolute;
+      left: 58cqw;
+      top: 34cqh;
+      width: 24cqw;
+      height: 20cqh;
+      box-sizing: border-box;
+      background: var(--paper2);
+      border: 2px solid var(--success);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      z-index: 5;
+    }
+    .m3-win-tag {
+      font-family: ui-monospace, monospace;
+      font-size: 1.05cqw;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .m3-win-amt {
+      font-size: 2.6cqw;
+      letter-spacing: 0.02em;
+      color: var(--success);
+      margin: 0.9cqh 0 0.6cqh;
+      opacity: 0;
+    }
+    .m3-win-sub {
+      font-family: ui-monospace, monospace;
+      font-size: 0.95cqw;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .m3-onchain {
+      position: absolute;
+      left: 65cqw;
+      width: 10cqw;
+      top: 58cqh;
+      box-sizing: border-box;
+      padding: 0.7cqh 0;
+      text-align: center;
+      font-size: 1.15cqw;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      opacity: 0;
+      z-index: 7;
+    }
+
+    /* ── held end line — "The data decides." ── */
+    .m3-end {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 65cqh;
+      text-align: center;
+      font-size: 4.2cqw;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0;
+      z-index: 8;
+    }
+    .m3-end-underline {
+      position: absolute;
+      left: 38cqw;
+      top: 74cqh;
+      width: 24cqw;
+      height: 3px;
+      background: var(--ink-soft);
+      transform-origin: center center;
+      transform: scaleX(0);
+      z-index: 8;
+    }
+  </style>
+
+  <div id="root" data-composition-id="03-mechanism" data-start="0" data-duration="12.16" data-width="1920" data-height="1080">
+    <!-- ground -->
+    <div class="m3-ground clip" id="m3-ground" data-start="0" data-duration="12.16" data-track-index="0"></div>
+    <div class="m3-grid clip" id="m3-grid" data-start="0" data-duration="12.16" data-track-index="1"></div>
+    <div class="m3-glow clip" id="m3-glow" data-start="0" data-duration="12.16" data-track-index="2"></div>
+    <div class="m3-vignette clip" id="m3-vignette" data-start="0" data-duration="12.16" data-track-index="3"></div>
+
+    <!-- chrome -->
+    <div class="m3-hl m3-hl-top clip" id="m3-hl-top" data-start="0.15" data-duration="12.01" data-track-index="4"></div>
+    <div class="m3-hl m3-hl-bot clip" id="m3-hl-bot" data-start="0.2" data-duration="11.96" data-track-index="5"></div>
+    <div class="m3-eyebrow clip" id="m3-eyebrow" data-start="0.25" data-duration="11.91" data-track-index="6">03 &middot; How it works</div>
+    <div class="m3-pagenum clip" id="m3-pagenum" data-start="0.35" data-duration="11.81" data-track-index="7">03 / 07</div>
+    <div class="m3-qr clip" id="m3-qr" data-start="0.5" data-duration="11.66" data-track-index="8"></div>
+
+    <!-- stage 1 · two friends -->
+    <div class="m3-avatar m3-avA clip" id="m3-avA" data-start="0.3" data-duration="11.86" data-track-index="9"><div class="m3-tex" id="m3-avA-tex"></div></div>
+    <div class="m3-avatar m3-avB clip" id="m3-avB" data-start="0.55" data-duration="11.61" data-track-index="10"><div class="m3-tex" id="m3-avB-tex"></div></div>
+    <div class="m3-nlabel m3-labA clip" id="m3-labA" data-start="0.75" data-duration="11.41" data-track-index="11">You</div>
+    <div class="m3-nlabel m3-labB clip" id="m3-labB" data-start="0.9" data-duration="11.26" data-track-index="12">Friend</div>
+
+    <!-- stage 2 · equal stake chips -->
+    <div class="m3-chip m3-chipA clip" id="m3-chipA" data-start="1.3" data-duration="10.86" data-track-index="13"><b>10</b><span>kUSD</span></div>
+    <div class="m3-chip m3-chipB clip" id="m3-chipB" data-start="1.5" data-duration="10.66" data-track-index="14"><b>10</b><span>kUSD</span></div>
+
+    <!-- connectors: friends → merge → escrow -->
+    <div class="m3-conn m3-stubA clip" id="m3-stubA" data-start="1.8" data-duration="10.36" data-track-index="15"></div>
+    <div class="m3-conn m3-stubB clip" id="m3-stubB" data-start="1.95" data-duration="10.21" data-track-index="16"></div>
+    <div class="m3-conn m3-merge clip" id="m3-merge" data-start="2.1" data-duration="10.06" data-track-index="17"></div>
+    <div class="m3-conn m3-bus clip" id="m3-bus" data-start="2.35" data-duration="9.81" data-track-index="18"></div>
+
+    <!-- stage 3 · escrow vault on Injective (flips to winner) -->
+    <div class="m3-vault clip" id="m3-vault" data-start="2.5" data-duration="9.66" data-track-index="19">
+      <div class="m3-vault-inner" id="m3-vault-inner">
+        <div class="m3-face m3-front">
+          <div class="m3-vault-hd" id="m3-vault-hd">Escrow</div>
+          <div class="m3-lock" id="m3-lock-tex"></div>
+          <div class="m3-stamp" id="m3-stamp">Injective</div>
+        </div>
+        <div class="m3-face m3-back">
+          <div class="m3-win-hd" id="m3-win-hd">Winner</div>
+          <div class="m3-win-tick" id="m3-win-tick">&#10003; Resolved</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- stage 4 · oracle signs the final score -->
+    <div class="m3-oracle clip" id="m3-oracle" data-start="5.0" data-duration="7.16" data-track-index="20"><div class="m3-otex" id="m3-oracle-tex"></div></div>
+    <div class="m3-oralabel clip" id="m3-oralabel" data-start="5.3" data-duration="6.86" data-track-index="21">Oracle</div>
+    <div class="m3-conn m3-ocon clip" id="m3-ocon" data-start="5.5" data-duration="6.66" data-track-index="22"></div>
+    <div class="m3-signs clip" id="m3-signs" data-start="5.85" data-duration="6.31" data-track-index="23">&#10003; Signs</div>
+    <div class="m3-schip clip" id="m3-schip" data-start="6.0" data-duration="6.16" data-track-index="24"><b>2&ndash;1</b><i>&#10003;</i></div>
+
+    <!-- stage 5 · winner payout, on-chain -->
+    <div class="m3-conn m3-wbus clip" id="m3-wbus" data-start="8.3" data-duration="3.86" data-track-index="25"></div>
+    <div class="m3-winpanel clip" id="m3-winpanel" data-start="8.6" data-duration="3.56" data-track-index="26">
+      <div class="m3-win-tag">Payout</div>
+      <div class="m3-win-amt" id="m3-win-amt">20 kUSD</div>
+      <div class="m3-win-sub">&rarr; Winner takes the pot</div>
+    </div>
+    <div class="m3-onchain clip" id="m3-onchain" data-start="9.6" data-duration="2.56" data-track-index="27">On-chain</div>
+
+    <!-- held end line -->
+    <div class="m3-end clip" id="m3-end" data-start="10.4" data-duration="1.76" data-track-index="28">The data decides.</div>
+    <div class="m3-end-underline clip" id="m3-end-underline" data-start="10.85" data-duration="1.31" data-track-index="29"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (function () {
+      // ── deterministic pixel mosaics (no random / no date) ──
+      function paint(id, rows, cell, on, off) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.gridTemplateColumns = "repeat(" + rows[0].length + ", " + cell + "px)";
+        el.style.gridAutoRows = cell + "px";
+        for (var r = 0; r < rows.length; r++) {
+          for (var c = 0; c < rows[r].length; c++) {
+            var d = document.createElement("div");
+            d.style.background = rows[r].charAt(c) === "1" ? on : off;
+            el.appendChild(d);
+          }
+        }
+      }
+
+      var INK = "#627eea", SOFT = "#8aa0f5";
+      var OFFA = "rgba(98,126,234,0.10)", OFFQ = "rgba(98,126,234,0.16)";
+
+      // person silhouette (both friends)
+      var person = ["001100", "011110", "011110", "001100", "011110", "111111"];
+      paint("m3-avA-tex", person, 13, SOFT, OFFA);
+      paint("m3-avB-tex", person, 13, SOFT, OFFA);
+
+      // padlock / vault motif
+      var lock = ["0011100", "0100010", "0100010", "1111111", "1101011", "1100011", "1111111"];
+      paint("m3-lock-tex", lock, 16, INK, OFFA);
+
+      // oracle eye / signal motif
+      var eye = ["000000", "011110", "100001", "101101", "100001", "011110"];
+      paint("m3-oracle-tex", eye, 15, SOFT, OFFA);
+
+      // decorative QR patch
+      var qr = ["111011", "100101", "101110", "011001", "110101", "101011"];
+      paint("m3-qr", qr, 10, INK, OFFQ);
+
+      // ── one paused, seek-safe timeline ──
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var DUR = 12.16;
+
+      // ground + chrome establish
+      tl.fromTo("#m3-grid", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.0);
+      tl.fromTo(".m3-hl-top", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.out" }, 0.15);
+      tl.fromTo(".m3-hl-bot", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.out" }, 0.2);
+      tl.fromTo(".m3-eyebrow", { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.25);
+      tl.fromTo(".m3-pagenum", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 0.35);
+      tl.fromTo("#m3-qr", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, 0.5);
+
+      // stage 1 — two friends tick in from the left
+      tl.fromTo(".m3-avA", { opacity: 0, scale: 0.86, x: -16 }, { opacity: 1, scale: 1, x: 0, duration: 0.44, ease: "power3.out" }, 0.3);
+      tl.fromTo(".m3-avB", { opacity: 0, scale: 0.86, x: -16 }, { opacity: 1, scale: 1, x: 0, duration: 0.44, ease: "power3.out" }, 0.55);
+      tl.fromTo(".m3-labA", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 0.75);
+      tl.fromTo(".m3-labB", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 0.9);
+
+      // stage 2 — equal stakes tick in
+      tl.fromTo(".m3-chipA", { opacity: 0, y: -12, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: "back.out(2)" }, 1.3);
+      tl.fromTo(".m3-chipB", { opacity: 0, y: -12, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: "back.out(2)" }, 1.5);
+
+      // connectors draw left→right toward the escrow
+      tl.fromTo(".m3-stubA", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power1.inOut" }, 1.8);
+      tl.fromTo(".m3-stubB", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power1.inOut" }, 1.95);
+      tl.fromTo(".m3-merge", { scaleY: 0 }, { scaleY: 1, duration: 0.34, ease: "power1.inOut" }, 2.1);
+      tl.fromTo(".m3-bus", { scaleX: 0 }, { scaleX: 1, duration: 0.42, ease: "power1.inOut" }, 2.35);
+
+      // stage 3 — escrow vault ticks in, stakes slide right into it
+      tl.fromTo("#m3-vault", { opacity: 0, scale: 0.82, x: -14 }, { opacity: 1, scale: 1, x: 0, duration: 0.5, ease: "back.out(1.6)" }, 2.5);
+      tl.fromTo("#m3-vault-hd", { opacity: 0 }, { opacity: 1, duration: 0.34, ease: "power2.out" }, 2.9);
+      tl.fromTo("#m3-lock-tex", { opacity: 0 }, { opacity: 1, duration: 0.34, ease: "power2.out" }, 3.0);
+      tl.to(".m3-chipA", { x: 431, y: 80, scale: 0.55, duration: 0.85, ease: "power2.in" }, 3.1);
+      tl.to(".m3-chipB", { x: 491, y: -79, scale: 0.55, duration: 0.85, ease: "power2.in" }, 3.25);
+      // INJECTIVE stamp presses in (accent beat)
+      tl.fromTo("#m3-stamp", { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 4.05);
+
+      // stage 4 — oracle drops in above the line and signs the final score
+      tl.fromTo("#m3-oracle", { opacity: 0, scale: 0.8, y: -12 }, { opacity: 1, scale: 1, y: 0, duration: 0.46, ease: "back.out(1.6)" }, 5.0);
+      tl.fromTo(".m3-oralabel", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" }, 5.3);
+      tl.fromTo(".m3-ocon", { scaleY: 0 }, { scaleY: 1, duration: 0.3, ease: "power1.inOut" }, 5.5);
+      tl.fromTo(".m3-signs", { opacity: 0, x: -8 }, { opacity: 1, x: 0, duration: 0.34, ease: "power2.out" }, 5.85);
+      // signed 2–1 chip emitted, travels straight down into the vault
+      tl.fromTo("#m3-schip", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.32, ease: "back.out(2)" }, 6.0);
+      tl.to("#m3-schip", { y: 153, scale: 0.55, duration: 0.85, ease: "power2.in" }, 6.4);
+
+      // stage 5 — the contract derives the winner: vault flips, payout resolves right
+      tl.to("#m3-vault-inner", { rotationY: 180, duration: 0.85, ease: "power2.inOut" }, 7.5);
+      tl.fromTo("#m3-win-hd", { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, 8.05);
+      tl.fromTo("#m3-win-tick", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 8.35);
+      tl.fromTo(".m3-wbus", { scaleX: 0 }, { scaleX: 1, duration: 0.34, ease: "power1.inOut" }, 8.3);
+      tl.fromTo(".m3-winpanel", { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.42, ease: "power3.out" }, 8.6);
+      tl.fromTo("#m3-win-amt", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 9.0);
+      // on-chain accent
+      tl.fromTo(".m3-onchain", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.38, ease: "power3.out" }, 9.6);
+
+      // held end line — "The data decides."
+      tl.fromTo(".m3-end", { opacity: 0, y: 16, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 10.4);
+      tl.fromTo(".m3-end-underline", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 10.85);
+
+      // span the full frame — never freeze early
+      tl.to({}, { duration: DUR }, 0);
+
+      window.__timelines["03-mechanism"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,38 @@
+{
+  "provider": "kokoro",
+  "speed": 1,
+  "lines": [
+    {
+      "id": "01",
+      "text": "Bet on the World Cup with friends — without trusting anyone to hold the money."
+    },
+    {
+      "id": "02",
+      "text": "Every prediction app asks you to trust a custodian. Kickpact doesn't."
+    },
+    {
+      "id": "03",
+      "text": "Friends lock the same stake. The pot lives in an escrow on Injective. An oracle signs the final score, and the contract derives the winner on-chain. The data decides."
+    },
+    {
+      "id": "04",
+      "text": "Open a pool in seconds. Your keys, your stake, held by code no one can override."
+    },
+    {
+      "id": "05",
+      "text": "Pot up in person over Bluetooth, or online with a duel code. Friends anywhere, one on-chain pot."
+    },
+    {
+      "id": "06",
+      "text": "Every payout is a receipt you can verify yourself, from your phone."
+    },
+    {
+      "id": "07",
+      "text": "Kickpact. Predict together. Trust the data, not us."
+    }
+  ],
+  "bgm": {
+    "mode": "none"
+  },
+  "voice": "am_michael"
+}

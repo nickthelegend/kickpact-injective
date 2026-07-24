@@ -5,24 +5,24 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
 const REPO = "https://github.com/nickthelegend/kickpact/tree/solana"
-const SCAN = "https://explorer.solana.com/address"
-const CLUSTER = "?cluster=devnet"
+const SCAN = "https://testnet.blockscout.injective.network/address"
+const CLUSTER = ""
 
 const STEPS = [
   {
     n: "01",
     t: "Bring a wallet",
-    d: "Connect Phantom, Solflare, or any Mobile Wallet Adapter wallet — it keeps the keys and signs; Kickpact only sees your public key. No wallet app? A burner keypair is generated on-device and sealed in the OS keychain.",
+    d: "Sign in for a Privy embedded EVM wallet, or connect MetaMask or any EVM wallet — it keeps the keys and signs; Kickpact only sees your address. Want no accounts at all? A burner keypair is generated on-device and sealed in the OS keychain.",
   },
   {
     n: "02",
     t: "Mint some kUSD",
-    d: "kUSD is the demo stake token (6dp) with an open faucet — tap MINT for 100. Gas is devnet SOL: solana airdrop 1 <you> -u devnet.",
+    d: "kUSD is the demo stake token (an ERC-20, 6dp) with an open faucet — tap MINT for 100. Gas is testnet INJ from testnet.faucet.injective.network.",
   },
   {
     n: "03",
     t: "Pick a match",
-    d: "Home lists the World Cup straight from TxLINE (competition 72), with live scores and StablePrice odds turned into implied probabilities.",
+    d: "Home lists the World Cup straight from API-Football, with live scores and bookmaker odds turned into implied probabilities.",
   },
   {
     n: "04",
@@ -31,22 +31,19 @@ const STEPS = [
   },
   {
     n: "05",
-    t: "The proof settles it",
-    d: "After full time anyone submits TxLINE's Merkle proof of the final goals. The program rebuilds the predicate on-chain and CPIs into validate_stat_v2 — winners split the pot, and every settlement keeps a receipt you can re-verify.",
+    t: "The signed score settles it",
+    d: "After full time anyone submits the oracle-signed final score. The contract verifies the signature against the oracle key and derives the outcome on-chain — winners split the pot, and every settlement keeps a receipt you can re-verify.",
   },
 ]
 
 const ACCOUNTS: [string, string, string][] = [
-  ["kickpact", "pools, duels + proof settlement", "4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa"],
-  ["txoracle", "TxLINE's oracle (devnet) we CPI into", "6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J"],
+  ["oracle signer", "the key every settled score is checked against", "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a"],
 ]
 
 const ENDPOINTS: [string, string][] = [
-  ["GET /api/fixtures/snapshot?competitionId=72", "the World Cup schedule"],
-  ["GET /api/scores/snapshot/{fixtureId}", "live score + game phase"],
-  ["GET /api/odds/snapshot/{fixtureId}", "StablePrice odds → implied probability"],
-  ["GET /api/scores/stream · /api/odds/stream", "SSE, resumed with Last-Event-ID"],
-  ["GET /api/scores/stat-validation?statKeys=1,2", "the Merkle proof that settles a pool"],
+  ["GET /fixtures?league=1&season=2026", "the World Cup schedule"],
+  ["GET /fixtures?id={fixtureId}", "one fixture — live score + status"],
+  ["GET /odds?fixture={fixtureId}&bet=1", "1X2 odds → implied probability"],
 ]
 
 export default function DocsPage() {
@@ -80,17 +77,18 @@ export default function DocsPage() {
         <div className="kp-panel p-8 border-[#e8b84b]/30">
           <div className="font-pixel text-[10px] tracking-widest text-[#e8b84b] mb-3">WHY YOU CAN&apos;T CHEAT IT</div>
           <p className="text-white/60 leading-relaxed">
-            <code className="text-[#8aa0f5] font-pixel text-xs">settle(outcome, payload)</code> is permissionless — anyone may call it. The caller says which outcome they think happened and hands over TxLINE&apos;s proof of both final goal counts. The program then, <span className="text-white">on-chain</span>, builds the predicate for that claim (home = P1 goals &gt; P2, draw = equal, away = P2 &gt; P1) and asks the oracle to validate it. It also refuses a proof for the wrong fixture, one missing either goal stat, one that isn&apos;t final, or a roots account that isn&apos;t the oracle&apos;s real PDA for that proof&apos;s epoch day.
+            <code className="text-[#8aa0f5] font-pixel text-xs">settle(fixtureId, homeGoals, awayGoals, signature)</code> is permissionless — anyone may call it. The caller hands over the final score and the oracle&apos;s signature over it. The contract then, <span className="text-white">on-chain</span>, recovers the signer from the signature, checks it equals the fixed oracle key, and builds the outcome from the score itself (home = home goals &gt; away, draw = equal, away = away &gt; home). It also refuses a score for the wrong fixture, an expired or replayed signature, or anything the oracle key didn&apos;t sign.
           </p>
           <p className="text-white/60 leading-relaxed mt-4">
-            So the caller can pick <em>which</em> claim to test, but not <em>whether</em> it&apos;s true. Claim the wrong winner and the CPI returns false and the transaction reverts. The pot can only ever open to what the match actually did.
+            So the caller can carry the score to the chain, but can&apos;t change what it says. Submit a score the oracle never signed and signature recovery fails and the transaction reverts. The pot can only ever open to what the oracle actually signed.
           </p>
         </div>
       </section>
 
       {/* on-chain */}
       <section className="max-w-4xl mx-auto px-4 pb-16">
-        <h2 className="font-display text-2xl text-white mb-5">On-chain — Solana devnet</h2>
+        <h2 className="font-display text-2xl text-white mb-2">On-chain — Injective EVM testnet</h2>
+        <p className="text-white/45 text-sm mb-5">Chain ID 1439 · the escrow and kUSD are a Solidity contract and an ERC-20, verified on Blockscout. Settlements are checked against the oracle signer below.</p>
         <div className="kp-panel divide-y divide-white/10">
           {ACCOUNTS.map(([name, what, addr]) => (
             <div key={name} className="p-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -107,10 +105,10 @@ export default function DocsPage() {
         </div>
       </section>
 
-      {/* txline */}
+      {/* match data */}
       <section className="max-w-4xl mx-auto px-4 pb-24">
-        <h2 className="font-display text-2xl text-white mb-2">The TxLINE endpoints we use</h2>
-        <p className="text-white/45 text-sm mb-5">Free World Cup tier — guest JWT, then an on-chain subscribe activates the API token.</p>
+        <h2 className="font-display text-2xl text-white mb-2">The API-Football endpoints we use</h2>
+        <p className="text-white/45 text-sm mb-5">Live World Cup fixtures, scores and 1X2 odds — authenticated with a single x-apisports-key header.</p>
         <div className="kp-panel divide-y divide-white/10">
           {ENDPOINTS.map(([ep, what]) => (
             <div key={ep} className="p-4 flex flex-col sm:flex-row sm:justify-between gap-1">

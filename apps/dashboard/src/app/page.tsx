@@ -1,9 +1,10 @@
 "use client"
 
 /**
- * The odds board — every World Cup fixture with TxLINE StablePrice 1X2 odds,
- * implied probabilities, live scores, and the kUSD escrowed in Kickpact pools.
- * Data refreshes continuously from the TxLINE proxy + devnet.
+ * The odds board — every World Cup fixture with API-Football 1X2 odds, implied
+ * probabilities, live scores, and the kUSD escrowed in Kickpact pools. Match
+ * data comes from API-Football (or the bundled snapshot); pools stream live
+ * from the Kickpact escrow on Injective testnet.
  */
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -21,7 +22,7 @@ export default function OddsBoard() {
   const [rows, setRows] = useState<Row[]>([])
   const [poolList, setPoolList] = useState<Pool[]>([])
   const [loaded, setLoaded] = useState(false)
-  const [cached, setCached] = useState<string | null>(null)
+  const [live, setLive] = useState(true)
 
   useEffect(() => {
     let dead = false
@@ -44,8 +45,8 @@ export default function OddsBoard() {
         )
         if (!dead) {
           setRows(enriched.sort((a, b) => b.f.StartTime - a.f.StartTime))
-          // fixtures() falls back to the captured snapshot rather than throwing
-          setCached(feed.live ? null : feed.capturedAt)
+          // fixtures() falls back to the bundled snapshot rather than throwing
+          setLive(feed.live)
         }
       } finally {
         if (!dead) setLoaded(true)
@@ -82,23 +83,23 @@ export default function OddsBoard() {
         <div className="panel" style={{ flex: 1, minWidth: 180 }}>
           <div className="small dim">POOLS</div>
           <div style={{ fontSize: 24, marginTop: 6 }}>
-            {poolList.length} <span className="small dim">({settledCount} settled by proof)</span>
+            {poolList.length} <span className="small dim">({settledCount} settled by oracle)</span>
           </div>
         </div>
         <div className="panel" style={{ flex: 1, minWidth: 180 }}>
           <div className="small dim">DATA SOURCE</div>
           <div style={{ fontSize: 13, marginTop: 10 }}>
-            TxLINE StablePrice ·{" "}
-            {cached ? (
-              <span style={{ color: "#e8b84b" }}>cached {cached.slice(0, 10)}</span>
+            API-Football ·{" "}
+            {live ? (
+              <span className="live">live feed</span>
             ) : (
-              <span className="live">devnet stream</span>
+              <span style={{ color: "#e8b84b" }}>bundled snapshot</span>
             )}
           </div>
         </div>
       </div>
 
-      {!loaded && <div className="dim small">loading TxLINE feed…</div>}
+      {!loaded && <div className="dim small">loading fixtures…</div>}
 
       <div className="grid">
         {rows.map(({ f, s, o }) => {

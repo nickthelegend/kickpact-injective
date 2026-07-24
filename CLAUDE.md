@@ -4,83 +4,83 @@ Guidance for Claude Code / agents working in this repository.
 
 ## Project
 
-**Kickpact** is a self‑custodial, mobile‑first **World Cup prediction app on Solana**, built for the **TxLINE (TxODDS) hackathon**. Friends lock the same **kUSD** stake on a match and pick an outcome; the pot is held by an on‑chain escrow that can only pay out what **TxLINE's cryptographically‑anchored match data proves**. Settlement is a **CPI into TxLINE's `validate_stat_v2`** — no trusted oracle, no admin key over funds.
+**Kickpact** is a self‑custodial, mobile‑first **World Cup prediction app on Injective EVM**. Friends lock the same **kUSD** stake on a match and pick an outcome; the pot is held by an on‑chain **escrow contract** that pays out only what an **oracle‑signed final score proves** — and the contract derives the winning outcome from that score *itself*, so the signer reports facts, not winners. No custodian, no admin key over funds.
 
-Friends gather two ways: **Bluetooth duels** (Google Nearby Connections — discover people around you, chat, pot up in person) and **online duels** (share a duel code; everyone joins the same on‑chain pot from anywhere).
+Friends gather two ways: **Bluetooth duels** (Google Nearby Connections — discover people around you, chat, pot up in person) and **online duels** (share a duel code; everyone joins the same on‑chain pot from anywhere). The P2P layer never touches the money.
 
-`README.md` + `docs/TECHNICAL.md` are the authoritative product descriptions.
+`README.md` + `docs/TECHNICAL.md` are the authoritative product descriptions. `MIGRATION.md` records the Solana→Injective port this repo came from.
 
-> **Branches.** `solana` (this one) is the product. `evm` preserves the pre‑pivot Tether Developers Cup app (WDK wallet, USD₮ on Sepolia, Pears/Hyperswarm watch party, Telegram Mini App, Electron desktop, legacy Sui scaffold). Nothing on `evm` is part of this product — don't port from it without reason.
-
-## Monorepo layout — every app here is Solana
+## Monorepo layout — every app here is Injective
 
 ```
 apps/
-├── mobile     # ⭐ the app — Expo / React Native (New Arch). MWA wallet, TxLINE feeds,
-│              #   pools, Bluetooth + online duels, proof receipts.
-├── solana     # ⭐ Anchor program `kickpact` + keeper bot + tests (real TxLINE proofs).
-├── dashboard  # ⭐ Next.js market viewer — odds board, implied probabilities,
-│              #   receipts explorer, browser-side oracle verification. (Vercel)
-└── landing    # marketing site + download page. (Vercel)
+├── mobile     # ⭐ the app — Expo / React Native (New Arch). Privy embedded EVM
+│              #   wallet + keychain burner, API-Football feeds, pools,
+│              #   Bluetooth + online duels, oracle-signed receipts.
+├── injective  # ⭐ Hardhat: Kickpact.sol + KUSD.sol + keeper bot + tests.
+├── dashboard  # ⭐ Next.js market viewer — odds board, pools, receipts explorer,
+│              #   browser-side signature verification. (Vercel)
+├── landing    # marketing site + download page. (Vercel)
+└── desktop    # legacy Electron wrapper (kept, not part of the core product)
 ```
 
-## The on-chain program (`apps/solana/programs/kickpact`)
+## The on-chain contracts (`apps/injective/contracts`)
 
-Anchor 0.32.1, deployed to **devnet**: `4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa`.
+Solidity **0.8.28**, Hardhat, OpenZeppelin, compiled for the **paris** EVM (so the bytecode runs on Injective's EVM regardless of its hardfork level). Deployed to **Injective EVM testnet** (chainId **1439**, RPC `https://k8s.testnet.json-rpc.injective.network/`, Blockscout at `testnet.blockscout.injective.network`). Deployed addresses live in `apps/injective/deployments.json` and are synced into `apps/mobile/src/deployment.json` + `apps/dashboard/src/deployment.json` by the deploy script.
 
-- `initialize` — creates the demo **kUSD** mint (6dp) + pool registry. `faucet(amount)` — open, ≤1,000 kUSD/call (testnet).
-- `create_pool(fixture_id, stake, deadline_ms, kickoff_ms, pick)` / `join_pool(pick)` — equal‑stake escrow; pick is `1=home, 2=draw, 3=away`. `deadline_ms` is the join cutoff; `kickoff_ms` anchors proof finality.
-- `settle(outcome, payload)` — **permissionless**. The caller *claims* an outcome and supplies TxLINE's Merkle proof of both final goal counts; the program **builds the winning predicate on‑chain from that claim** and CPIs into `txoracle::validate_stat_v2`. A lying caller simply fails — there is nothing to trust about them. Also checks the proof is for this fixture, carries exactly statKeys 1+2, is final (phase Ended or ts ≥ kickoff+105m), and that the roots account is the oracle's real PDA for the proof's own epoch day.
-- `claim` — winners split the pot; if nobody called it, everyone refunds. `refund_expired` — self‑serve after a 48h grace if no valid proof ever settled it.
+- **`KUSD.sol`** — demo stablecoin, ERC‑20, 6 decimals. Open `faucet(amount)` mints ≤1,000 kUSD/call (testnet).
+- **`Kickpact.sol`** — the escrow:
+  - `createPool(fixtureId, stake, deadlineMs, kickoffMs, pick)` / `joinPool(poolId, pick)` — equal‑stake escrow; pick is `1=home, 2=draw, 3=away`. `deadlineMs` is the join cutoff; `kickoffMs` anchors settlement finality. Both pull kUSD via `transferFrom`, so the client `approve`s first.
+  - `settle(poolId, homeGoals, awayGoals, ts, signature)` — **permissionless**. The caller supplies the fixture's final goals + the oracle's **EIP‑712 signature** over them. The contract verifies `ECDSA.recover(...) == oracleSigner`, checks the result is final (`ts ≥ kickoff + 105m`), then **derives the outcome from the goals on‑chain** (home>away→home, ==→draw, else away). The signature is bound to the *fixture*, so one attestation settles every pool on that match. A lying caller can't forge the signature; the signer can't pick a winner.
+  - `claim(poolId)` — winners split the pot; if the settled outcome had no backers, everyone refunds. `refundExpired(poolId)` — self‑serve after a 48h grace if no valid signature ever settled it.
 
-`declare_program!(txoracle)` generates the CPI client from `apps/solana/idls/txoracle.json` (the **devnet** IDL — the tarball's default IDL carries the mainnet address).
+## The oracle / settlement (the trust model)
 
-## TxLINE integration (the data layer)
+Injective has **no on‑chain sports‑score feed** (Pyth/Band are price feeds), so the Solana build's CPI into TxLINE's Merkle‑proof oracle has no analogue. Instead a known **`oracleSigner`** attests to the raw final goals via an EIP‑712 signature and the contract derives the outcome. This is an honest weakening vs. a Merkle proof — one trusted signer — mitigated by: (1) it's only trusted to report *facts* (the score), the contract decides the outcome; (2) settlement is permissionless to *submit*; (3) the 48h `refundExpired` escape hatch; (4) it upgrades cleanly to an N‑of‑M signer set. **Say this trade‑off plainly in the pitch. Never add an admin override of funds.**
 
-Free World Cup tier, **devnet**. Flow: guest JWT → on‑chain `subscribe` (SOL fees only) → sign `${txSig}:${leagues}:${jwt}` → `POST /api/token/activate` → long‑lived `X-Api-Token`.
+The EIP‑712 domain is `{ name: "Kickpact", version: "1", chainId: 1439, verifyingContract }` and the type is `Result(uint64 fixtureId,uint8 homeGoals,uint8 awayGoals,uint64 ts)`. The keeper (`apps/injective/keeper`) and the mobile receipt verifier must use these exactly.
 
-- Headers on every call: `Authorization: Bearer <jwt>` + `X-Api-Token: <token>`. Renew the JWT on 401.
-- `GET /api/fixtures/snapshot?competitionId=72&startEpochDay=` — **72 is the World Cup**.
-- `GET /api/scores/snapshot/{fixtureId}` (JSON) · `GET /api/odds/snapshot/{fixtureId}` · SSE `GET /api/scores/stream` + `/api/odds/stream` (resume with `Last-Event-ID`).
-- `GET /api/scores/stat-validation?fixtureId=&seq=&statKeys=1,2` → the Merkle proof that settles a pool.
-- statKeys: `1`/`2` = participant‑1/2 goals, `3`/`4` yellows, `5`/`6` reds, `7`/`8` corners; prefix `1000`=1st half, `3000`=2nd, etc. Game phase `5` = Ended.
-- Oracle programs: devnet `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J`, mainnet `9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA`. Roots PDA: `["daily_scores_roots", epochDay u16 LE]` — derive epochDay from **the proof's own ts**, never `Date.now()`.
-- `validate_stat_v2` needs ~1.4M CU; `.view()` needs a full `AnchorProvider` (a funded dummy wallet is enough).
+## Data layer (API-Football)
 
-Gotchas we hit are written up in `docs/FEEDBACK.md` (that file is also the hackathon's feedback deliverable).
+Fixtures, live scores and 1X2 odds come from **API‑Football** (`https://v3.football.api-sports.io`, league `1` = FIFA World Cup, season `2026`, header `x-apisports-key`). Set `APISPORTS_KEY` (keeper) / `EXPO_PUBLIC_APISPORTS_KEY` (mobile). **Without a key**, both the app and the keeper fall back to a bundled snapshot (`fixtures.snapshot.json` / `feed-fixtures.json`) whose kickoffs are assigned relative to load time — so there's always something to bet on and something to settle, and **the app and keeper read the same fixtures so `fixtureId`s always agree** (the pool you open and the score that settles it must match).
 
 ## Commands
 
 ```bash
-bun install                                  # all workspaces (Bun ≥ 1.3)
+bun install                                   # root (prettier/turbo/ts only)
 
-cd apps/solana && anchor build               # compile the program
-cd apps/solana && anchor test                # CPI test vs a REAL TxLINE proof
-                                             #   (clones the devnet oracle + roots PDA into localnet)
-cd apps/solana/keeper && bun run src/discover.ts keys/keeper.json   # activate + pull live WC data
-cd apps/solana/keeper && bun run src/keeper.ts                      # SSE watcher → auto-settle
+cd apps/injective && bun install
+cd apps/injective && bunx hardhat compile     # compile the contracts
+cd apps/injective && bunx hardhat test        # signed-settlement unit tests (localnet)
+cd apps/injective && bun run deploy           # deploy to Injective testnet + sync addresses/ABIs
+cd apps/injective && bun run settle:demo      # one pool settling end-to-end on testnet
+cd apps/injective/keeper && bun run src/fixtures.ts     # list fixtures
+cd apps/injective/keeper && bun run src/keeper.ts       # settle open pools from signed scores
+cd apps/injective/keeper && bun run src/keeper.ts --fixture <id> --home <h> --away <a>  # manual
 
-cd apps/mobile && bun run web                # fast UI loop (burner wallet only)
+cd apps/mobile && bun run web                 # fast UI loop (burner path)
 cd apps/mobile && npx expo prebuild -p android && cd android && ./gradlew assembleRelease
 ```
 
 Prebuilt APK: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk` (`io.kickpact.app`).
 
+Secrets live in `apps/injective/.env` (gitignored): `PRIVATE_KEY` (deployer), `ORACLE_SIGNER_PRIVATE_KEY`/`ORACLE_SIGNER_ADDRESS`, optional `RELAYER_PRIVATE_KEY`, `APISPORTS_KEY`.
+
 ## Load-bearing design decisions
 
-- **The oracle decides, not us.** `settle` derives the predicate from the claimed outcome *inside the program*, so the only outcome that can ever settle a pool is the one TxLINE's proof supports. Never add an admin override.
-- **Self-custodial, always.** MWA (`@wallet-ui/react-native-web3js`) is the primary path — a real wallet app holds the keys. The keychain burner is a fallback, not the default.
-- **P2P is Bluetooth, and it never touches the money.** `expo-nearby-connections` (P2P_CLUSTER mesh) carries chat + the duel invite; the pot is always an on-chain pool. Hyperswarm/Bare are gone.
-- **One pool primitive.** Bluetooth duels, online duels, and match pools are all the same `Pool` account — don't fork the money flow per surface.
+- **The contract derives the outcome, not the signer.** `settle` verifies a signature over the raw goals and computes home/draw/away on‑chain. The signer attests facts; the only outcome that can settle a pool is the one the score implies. Never let the signer pass an outcome directly, and never add an admin override.
+- **Self‑custodial, always.** Privy embedded EVM wallet (`@privy-io/expo`, `useEmbeddedEthereumWallet`) is the primary path; a keychain burner (`ethers.Wallet` in `expo-secure-store`) is the fallback and the default when Privy isn't configured. The web preview runs on the burner path.
+- **P2P is Bluetooth, and it never touches the money.** `expo-nearby-connections` (P2P_CLUSTER mesh) carries chat + the duel invite; the pot is always an on‑chain pool.
+- **One pool primitive.** Bluetooth duels, online duels, and match pools are all the same `Pool` — don't fork the money flow per surface.
 - **Duel join windows run late.** `duelDeadlineMs` = kickoff+75m so friends can pot up around the match; finality still keys off kickoff.
 
 ## Native build gotchas (apps/mobile)
 
-- **New Architecture is on** and required (nitro modules).
-- **No `react-native-quick-crypto`** — its `libQuickCrypto.so` needs OpenSSL (`libcrypto.so`), which isn't packaged, and it crashes at startup. We don't need it: `react-native-get-random-values` + tweetnacl's bundled ed25519/sha512 cover the burner and MWA paths. `react-native-nitro-modules` stays (Nearby needs it).
-- `expo-nearby-connections@1.1.0` ships a broken `android/build.gradle` (references a `fix-prefab.gradle` it doesn't include, plus a `components.release` publish block newer Gradle rejects). `scripts/patch-nearby.mjs` fixes both, wired as `postinstall` — patch-package can't read `bun.lock`.
-- MWA + Nearby are **native-only**: guarded so the web preview still runs on the burner path. A real Bluetooth handshake needs **two physical devices** — emulators have no BT radio.
+- **New Architecture is on** and required (nitro modules; Nearby needs `react-native-nitro-modules`).
+- **ethers v6** is the chain client. It needs `crypto.getRandomValues` — provided by `react-native-get-random-values` in `polyfill.js` (must be the first import). No native OpenSSL needed.
+- `expo-nearby-connections@1.1.0` ships a broken `android/build.gradle`; `scripts/patch-nearby.mjs` fixes it, wired as `postinstall`.
+- Privy + Nearby are **native‑only**: guarded so the web preview still runs on the burner path. A real Bluetooth handshake needs **two physical devices** — emulators have no BT radio. To use Privy, its dashboard must have **Injective testnet (1439)** configured and the build's package id / scheme allowlisted; set `EXPO_PUBLIC_PRIVY_APP_ID` / `EXPO_PUBLIC_PRIVY_CLIENT_ID`.
 
 ## Code style
 
-Bun workspaces + Turborepo. Prettier: no semicolons, double quotes, 2‑space, trailing comma `es5`. TypeScript `strict`. Rust via Anchor/Cargo. Prefer `bun` over npm/pnpm/yarn.
+Bun workspaces + Turborepo. Prettier: no semicolons, double quotes, 2‑space, trailing comma `es5`. TypeScript `strict`. Solidity via Hardhat. Prefer `bun` over npm/pnpm/yarn.

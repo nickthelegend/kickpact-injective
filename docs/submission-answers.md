@@ -1,42 +1,58 @@
-# Superteam Earn — submission answers (TxLINE track)
+# Submission answers — Injective
 
 ## One-liner
 
-> **Kickpact — bets that settle themselves.** Self-custodial World Cup prediction pools on Solana: friends escrow kUSD, and the pool can only settle to the outcome TxLINE's Merkle proof confirms — via CPI into `validate_stat_v2`. Winners split the pot; every settlement leaves a receipt you can re-verify on-chain from your phone or browser.
+> **Kickpact — bets that settle themselves.** Self-custodial World Cup prediction pools on Injective EVM: friends escrow kUSD and pick an outcome, and the pool can only settle to the result an oracle-signed final score implies — the contract verifies the signature and **derives the winner from the goals on-chain**, so the signer reports facts, never winners. Winners split the pot; every settlement leaves a receipt you can re-verify from your phone or browser.
+
+## What it is
+
+A mobile-first, self-custodial group-betting app. Friends lock the **same** kUSD stake on a World Cup fixture, each pick home/draw/away, and the pot is held by one on-chain escrow (`Kickpact.sol`). Friends gather two ways — **Bluetooth duels** (Google Nearby Connections, in person) and **online duels** (share a pool-id code) — but both fund the identical on-chain pool; the peer-to-peer layer never touches the money. After full time, anyone submits the final goals plus the oracle's signature, the contract settles, and winners claim self-serve.
+
+## What's novel
+
+- **The escrow decides the winner, not a resolver.** `settle` takes only raw goals + an EIP-712 signature; the outcome is computed inside the contract (`home > away ? home : (== ? draw : away)`). No admin can name a result, and the signed attestation is bound to the *fixture*, so one signature settles every pool on that match at once.
+- **Verify-your-own-receipt.** The app and dashboard pull the settlement event + `settle` calldata and re-run `verifyTypedData` locally, recovering the signer on-device — you watch the oracle's signature check out yourself.
+- **One pool primitive across three surfaces.** In-person Bluetooth duels, remote code duels, and plain match pools are all the same `Pool`; the money flow isn't forked per surface.
+
+## The trust model, and its honest limits
+
+Injective has **no on-chain sports-score feed** (Pyth/Band are price oracles), so — unlike the original Solana build, which settled trustlessly by verifying a TxLINE Merkle proof on-chain — there is no scoreboard to prove a result against. Kickpact instead trusts a known **`oracleSigner`** to sign the raw final goals, and the contract derives the outcome from them.
+
+This is a deliberate, clearly-stated **weakening**: one trusted signer for the *fact* of the score. We bound it: the signer reports facts (not winners), it holds no funds and needs no gas, settlement submission is permissionless, an outcome nobody backed refunds everyone, and a 48-hour `refundExpired` grace returns funds if the signer ever goes silent. It upgrades cleanly to an N-of-M signer set — the contract already separates attesting the score from deciding the outcome. We say this plainly rather than dress a single signer up as trustless.
+
+## Tech stack
+
+- **Contracts**: Solidity 0.8.28, Hardhat, OpenZeppelin (`EIP712`/`ECDSA`/`SafeERC20`/`ReentrancyGuard`), compiled for **paris**; `Kickpact` escrow + `KUSD` (ERC-20, 6dp, open faucet).
+- **Chain**: Injective EVM testnet — chainId **1439**, RPC `https://k8s.testnet.json-rpc.injective.network/`, explorer [Blockscout](https://testnet.blockscout.injective.network).
+- **Settlement**: EIP-712 `Result(uint64 fixtureId,uint8 homeGoals,uint8 awayGoals,uint64 ts)`; keeper split into an offline **oracle** signer and a gas-paying **relayer**.
+- **Data**: API-Football (World Cup fixtures/scores/1X2 odds) with a bundled snapshot fallback so the demo is always populated.
+- **App**: Expo / React Native (New Architecture), **ethers v6**, Privy embedded EVM wallet + keychain burner; Bluetooth duels over `expo-nearby-connections`.
+- **Dashboard**: Next.js market viewer (odds board, pool volumes, verifiable receipts) on Vercel.
 
 ## Links
 
 | | |
 | --- | --- |
-| Public repo (solana branch) | https://github.com/nickthelegend/kickpact/tree/solana |
-| Application access — dashboard (live) | https://kickpact-solana.vercel.app |
-| Devnet program (IDL on-chain) | `4tAPD5tVaWt9TBSMGKfUnguppbg8KLcc2jXbBPufgWDa` |
-| Real settlement tx (England 1–2 Argentina, CPI validateStatV2) | https://explorer.solana.com/tx/21CFfLsx6Mqy7XmZUeTiPZ6PAMwGqBpwFgi4GkZvqUPbUJ9oXxV8QA6kDuqX6qWaM8vDdKWTihugkXa528uh6voS?cluster=devnet |
-| Android APK | GitHub release on the solana branch |
-| Demo video (3:01) | [kickpact-demo.mp4](https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana/kickpact-demo.mp4) — upload to YouTube *unlisted* and paste the link here |
+| Public repo | *(this repository)* |
+| Contracts (Injective testnet 1439) | addresses written to [`apps/injective/deployments.json`](../apps/injective/deployments.json) by `bun run deploy`; oracle signer `0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a` |
+| End-to-end settlement on testnet | `bun run settle:demo` — faucet → open pool → sign → settle → claim; the settle tx is a [Blockscout](https://testnet.blockscout.injective.network) link |
+| Dashboard (odds + verifiable receipts) | Next.js in [`apps/dashboard`](../apps/dashboard) (Vercel) |
+| Android APK | build via `expo prebuild -p android` → `app-release.apk` (`io.kickpact.app`), attached to the GitHub release |
 | Technical documentation | [docs/TECHNICAL.md](TECHNICAL.md) |
-| TxLINE API feedback | [docs/FEEDBACK.md](FEEDBACK.md) |
-
-## How TxLINE powers the backend (short)
-
-- **Fixtures/scores/odds**: the app and dashboard read `fixtures/snapshot` (competitionId 72), `scores/snapshot` (live scores + `Seq`), and StablePrice `1X2_PARTICIPANT_RESULT` odds with TxLINE's demargined implied probabilities.
-- **SSE**: the settle-keeper holds `/api/scores/stream` open (Last-Event-ID resume) and reacts to full-time events.
-- **Proofs**: settlement consumes `scores/stat-validation` (statKeys 1,2) and the program CPIs into `validate_stat_v2` on devnet — the claimed outcome's predicate is rebuilt on-chain, so a false settlement is refuted by the oracle itself.
-- **Activation**: our data token was minted by the project's own on-chain `subscribe` (free tier, level 1) + signed activation — the same flow ships in `apps/solana/keeper`.
+| Injective builder feedback | [docs/FEEDBACK.md](FEEDBACK.md) |
+| Demo video | *record + upload unlisted, paste link here* |
 
 ## Team
 
-nickthelegend (+ Claude as AI pair). Prize-eligible individual submission via Superteam Earn.
+nickthelegend (+ Claude as AI pair). Individual submission.
 
-## Demo video (3:01) — recorded, in the v2.0.0-solana release
+## Demo video — beats
 
-Every beat below is a real capture: the APK on-device against devnet, the real `anchor test` CPI logs, and the live dashboard. Nothing is mocked.
+Every beat is a real capture: the APK on-device against Injective testnet, the `hardhat test` output, and the live dashboard.
 
-### Beats
-
-1. **Cold open (15s)** — "Group bets die arguing about results. Kickpact pools can only settle to what TxLINE proves."
-2. **Wallet + data (45s)** — create burner (or MWA connect), fixtures/odds board straight from TxLINE, mint kUSD faucet.
-3. **Pool flow (60s)** — open a pool on the final, second phone/wallet joins, vault shown on explorer.
-4. **The oracle moment (90s)** — keeper spots full time on the SSE stream → fetches the Merkle proof → settle tx lands → show the CPI logs refuting a wrong outcome in the test, confirming the true one on devnet.
-5. **Receipts (45s)** — receipt screen: stats proven, roots, epoch-day PDA → press **VERIFY ON-CHAIN NOW** → "ORACLE CONFIRMS ✓" live in the browser and on the phone.
-6. **Close (15s)** — dashboard totals, repo, "goal-line technology for your bets."
+1. **Cold open (15s)** — "Group bets die arguing about results. A Kickpact pool can only pay out what the final score says."
+2. **Wallet + data (45s)** — sign in with Privy (or create a burner), the fixtures/odds board from API-Football, mint kUSD from the faucet.
+3. **Pool flow (60s)** — open a pool on a fixture, a second wallet joins, the escrow balance shown on Blockscout.
+4. **The settle moment (90s)** — keeper spots full time → signs the final goals with the oracle key → relays `settle` → show the contract deriving the outcome on-chain, and `hardhat test` rejecting a forged signer and a non-final timestamp.
+5. **Receipts (45s)** — the receipt screen: goals, signer, tx → press **VERIFY** → the signature recovers to the oracle live, on the phone and in the browser.
+6. **Close (15s)** — dashboard totals, repo, "goal-line technology for your bets" — plus the honest one-liner on the single-signer trade-off and the 48h refund safety valve.

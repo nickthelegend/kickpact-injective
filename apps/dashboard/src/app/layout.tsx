@@ -5,7 +5,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "Kickpact · World Cup market viewer",
   description:
-    "Live TxLINE World Cup odds, on-chain prediction-pool volumes, and cryptographically verifiable settlement receipts on Solana devnet.",
+    "Live API-Football World Cup odds, on-chain prediction-pool volumes, and cryptographically verifiable settlement receipts on Injective testnet.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link className="tab" href="/receipts">
               receipts
             </Link>
-            <div className="right">TXLINE DATA · SETTLED ON SOLANA DEVNET</div>
+            <div className="right">API-FOOTBALL DATA · SETTLED ON INJECTIVE TESTNET</div>
           </nav>
           {children}
         </div>

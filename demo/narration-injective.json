@@ -1,0 +1,43 @@
+{
+  "voice": "am_michael",
+  "tempo": 1.2,
+  "_comment": "Injective Kickpact demo, framed at the World Cup SEMI-FINAL stage. Semis are upcoming (predict them); quarter-finals are settled (one is the withdraw demo). Every tx shown is real on-chain. Order here is the final cut order.",
+  "segments": [
+    {
+      "id": "01-onboarding",
+      "text": "Kickpact is a World Cup prediction app, and it runs on Injective. Sign-in is self-custodial. A burner wallet is sealed in your own device, or an embedded wallet through Privy. No seed phrase, no custodian."
+    },
+    {
+      "id": "02-home",
+      "text": "It's semi-final week. The last four are set, and the matches are live to predict. Balances, pools, and settlement all run on Injective's E-V-M."
+    },
+    {
+      "id": "03-mint",
+      "text": "You mint test dollars, kUSD, from the on-chain faucet. Watch the balance jump. That is a real Injective transaction, confirmed before the screen updates."
+    },
+    {
+      "id": "04-bet",
+      "text": "Back your call. Argentina to beat France in the semi-final. Ten kUSD leaves your wallet into an escrow contract that no admin key can touch."
+    },
+    {
+      "id": "05-duels",
+      "text": "Pot up with friends in person over Bluetooth. Phones discover each other and stake together, with no server between you."
+    },
+    {
+      "id": "08-online",
+      "text": "Or duel a friend anywhere. Open a pool, share the code, and they join the same on-chain pot from their own phone."
+    },
+    {
+      "id": "06-receipts",
+      "text": "Every result is a receipt. An oracle signs the final score, the contract verifies it and derives the winner on-chain, and you can check it yourself from the phone."
+    },
+    {
+      "id": "07-withdraw",
+      "text": "And when your pick comes in, you withdraw. Claim your winnings, and the funds land straight back in your wallet. On-chain, no permission needed."
+    },
+    {
+      "id": "09-profile",
+      "text": "It's yours, end to end. Your keys, your funds, in contracts no one else controls. Kickpact — predict together, trust the data, not us."
+    }
+  ]
+}

@@ -1,10 +1,9 @@
 import "./polyfill"
 import { useState } from "react"
-import { ActivityIndicator, Image, Platform, Pressable, View } from "react-native"
+import { ActivityIndicator, Image, Pressable, View } from "react-native"
 import { StatusBar } from "expo-status-bar"
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { useFonts } from "expo-font"
-import { clusterApiUrl } from "@solana/web3.js"
 
 import { C } from "./src/theme"
 import { PixelText } from "./src/ui"
@@ -19,31 +18,14 @@ import {
   ReceiptsScreen,
   SignInScreen,
 } from "./src/screens"
-import type { PoolState } from "./src/solana"
+import type { PoolState } from "./src/injective"
 
 /**
- * Kickpact mobile — Expo / React Native on SOLANA. Connect a real wallet with
- * Mobile Wallet Adapter (or a keychain burner) and back World Cup prediction
- * pools settled trustlessly by TxLINE's proofs — plus Bluetooth & online duels
+ * Kickpact mobile — Expo / React Native on INJECTIVE EVM. Sign in with Privy
+ * (embedded EVM wallet) or a keychain burner, and back World Cup prediction
+ * pools settled by an oracle-signed final score — plus Bluetooth & online duels
  * where a whole group of friends pot together.
  */
-
-// MWA provider is native-only; on web we render children directly so the
-// preview still runs on the burner path.
-function WalletHost({ children }: { children: React.ReactNode }) {
-  if (Platform.OS === "web") return <>{children}</>
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { MobileWalletProvider } = require("@wallet-ui/react-native-web3js")
-  return (
-    <MobileWalletProvider
-      chain="solana:devnet"
-      endpoint={clusterApiUrl("devnet")}
-      identity={{ name: "Kickpact", uri: "https://kickpact.app", icon: "favicon.png" }}
-    >
-      {children}
-    </MobileWalletProvider>
-  )
-}
 
 type Tab = "home" | "duels" | "receipts" | "profile"
 
@@ -132,14 +114,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PrivyHost>
-        <WalletHost>
-          <WalletProvider>
+        <WalletProvider>
           <SafeAreaView style={{ flex: 1, backgroundColor: C.frameDeep }} edges={["top", "bottom"]}>
             <StatusBar style="light" />
             <Game />
           </SafeAreaView>
-          </WalletProvider>
-        </WalletHost>
+        </WalletProvider>
       </PrivyHost>
     </SafeAreaProvider>
   )

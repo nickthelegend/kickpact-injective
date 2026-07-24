@@ -5,8 +5,9 @@
  * chat, and the host broadcasts the on-chain pot everyone joins.
  *
  * Native-only (nitro module) — every export is a no-op/false on web so the
- * app and its web preview never crash. The MONEY is always on Solana; Nearby
- * only carries the social layer (chat) and a tiny coordination protocol.
+ * app and its web preview never crash. The money is always an on-chain pool on
+ * Injective; Nearby only carries the social layer (chat) and a tiny
+ * coordination protocol.
  *
  * Strategy P2P_CLUSTER = many-to-many mesh, so a whole group can pot together.
  */

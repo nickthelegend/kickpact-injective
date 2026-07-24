@@ -27,7 +27,7 @@ const WAYS = [
   {
     icon: "🧾",
     name: "Proof receipts",
-    desc: "Every settlement shows its work — the Merkle proof, the roots account, the validation call. Verify it yourself, in the app.",
+    desc: "Every settlement shows its work — the signed final score, the oracle key that signed it, and the on-chain transaction that paid out. Verify it yourself, in the app.",
   },
 ]
 
@@ -48,7 +48,7 @@ export default function HomePageContent() {
           <div>
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0, duration: 0.5 }}
               className="inline-flex items-center gap-2 rounded-full border border-[#627eea]/40 bg-[#627eea]/10 px-3 py-1 mb-6">
-              <span className="font-pixel text-[10px] tracking-widest text-[#8aa0f5]">BLUETOOTH DUELS · TXLINE PROOF · SOLANA</span>
+              <span className="font-pixel text-[10px] tracking-widest text-[#8aa0f5]">BLUETOOTH DUELS · ORACLE-SIGNED · INJECTIVE</span>
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }}
               className="font-display text-5xl md:text-6xl leading-[1.05] text-white">
@@ -57,8 +57,8 @@ export default function HomePageContent() {
             <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16, duration: 0.5 }}
               className="mt-5 text-white/60 text-lg max-w-md leading-relaxed">
               Kickpact finds the friends in the room with you <span className="text-white">over Bluetooth</span> — no server,
-              no signal, nothing in the middle. You both stake into the same Solana escrow, and it pays out only what{" "}
-              <span className="text-white">TxLINE&apos;s cryptographic proof</span> of the final score supports.
+              no signal, nothing in the middle. You both stake into the same Injective escrow, and it pays out only what{" "}
+              <span className="text-white">an oracle-signed final score</span> supports.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24, duration: 0.5 }} className="mt-8 flex flex-wrap gap-3">
               <Link href="/download">
@@ -73,7 +73,7 @@ export default function HomePageContent() {
               </Link>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.5 }} className="mt-8 flex gap-6">
-              {[["0", "servers between you"], ["0", "trusted oracles"], ["CPI", "settled on-chain"]].map(([n, l]) => (
+              {[["0", "servers between you"], ["0", "admin keys over funds"], ["EVM", "settled on-chain"]].map(([n, l]) => (
                 <div key={l}>
                   <div className="font-display text-3xl text-white">{n}</div>
                   <div className="font-pixel text-[9px] tracking-widest text-white/45 uppercase">{l}</div>
@@ -100,14 +100,14 @@ export default function HomePageContent() {
             Anyone can settle the pot. Only the truth settles it.
           </h2>
           <p className="mt-4 text-white/60 leading-relaxed max-w-3xl">
-            When the match ends, <span className="text-white">anyone</span> — a friend, a keeper bot, a stranger — submits TxLINE&apos;s Merkle proof of the final goals. Our program doesn&apos;t take their word for the result: it rebuilds the winning condition <span className="text-white">on-chain</span> from what they claimed, then calls into TxLINE&apos;s{" "}
-            <code className="text-[#8aa0f5] font-pixel text-xs">validate_stat_v2</code> to check it against the roots TxODDS anchored on Solana. Lie about the score and the transaction simply fails.
+            When the match ends, <span className="text-white">anyone</span> — a friend, a keeper bot, a stranger — submits the final score signed by the oracle. Our contract doesn&apos;t take the sender&apos;s word for it: it verifies the signature against a{" "}
+            <code className="text-[#8aa0f5] font-pixel text-xs">fixed oracle key</code>, then derives the winning outcome <span className="text-white">on-chain</span> from the score itself. Submit a score the oracle never signed and the transaction simply fails.
           </p>
           <div className="grid sm:grid-cols-3 gap-4 mt-8">
             {[
-              ["1", "Everyone stakes", "Equal kUSD into a program escrow. Pick home, draw or away."],
-              ["2", "The match happens", "TxLINE streams the scores and anchors them on Solana."],
-              ["3", "The proof pays", "A proof settles the pool by CPI; winners split. Nobody right? Everyone refunds."],
+              ["1", "Everyone stakes", "Equal kUSD into an escrow contract. Pick home, draw or away."],
+              ["2", "The match happens", "API-Football streams the live scores while you watch."],
+              ["3", "The signed score pays", "The oracle-signed final score settles the pool; winners split. Nobody right? Everyone refunds."],
             ].map(([n, t, d]) => (
               <div key={n} className="kp-panel p-5">
                 <div className="font-display text-2xl text-[#627eea]">{n}</div>
@@ -147,7 +147,7 @@ export default function HomePageContent() {
               Kickpact finds the friends in the room with you over Bluetooth — Google Nearby Connections, a real mesh, no internet needed to coordinate. Chat in the room, and when the host opens a duel every phone gets the invite and joins the same pot.
             </p>
             <p className="mt-4 text-white/80">
-              Bluetooth carries the chat and the invite. <span className="text-[#627eea]">The money never leaves Solana.</span>
+              Bluetooth carries the chat and the invite. <span className="text-[#627eea]">The money never leaves Injective.</span>
             </p>
           </div>
           <div className="flex justify-center gap-3">
@@ -167,7 +167,7 @@ export default function HomePageContent() {
             <div className="font-pixel text-[10px] tracking-widest text-[#e8b84b] mb-3">RECEIPTS · VERIFY IT YOURSELF</div>
             <h2 className="font-display text-3xl md:text-4xl text-white leading-tight">Don&apos;t trust us. Check.</h2>
             <p className="mt-4 text-white/60 leading-relaxed">
-              Every settled pool keeps its receipt: the stats that were proven, the Merkle branches, the daily-roots account it was checked against, and the transaction that did it. Tap verify and the app re-runs the oracle&apos;s validation live — you never have to take our word for a result.
+              Every settled pool keeps its receipt: the final score, the oracle signature that settled it, and the on-chain transaction that paid out. Tap verify and the app re-checks the signature against the oracle key live — you never have to take our word for a result.
             </p>
             <Link href={DASHBOARD} target="_blank" className="inline-block mt-5">
               <Button variant="outline" className="font-pixel text-xs tracking-wider border-white/20 bg-transparent text-white hover:bg-white/5 rounded-xl px-5 py-5">

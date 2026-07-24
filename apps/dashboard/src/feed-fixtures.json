@@ -1,0 +1,15 @@
+{
+  "note": "Fallback World Cup fixtures used when APISPORTS_KEY is absent. Kickoffs are assigned RELATIVE to load time (offsetMin) so there is always something upcoming to bet on and a few finished matches to settle. The mobile app and the keeper both read this same file, so fixtureIds always agree. Replace with live API-Football data by setting APISPORTS_KEY.",
+  "league": "FIFA World Cup",
+  "fixtures": [
+    { "id": 900101, "home": "Argentina", "away": "France", "offsetMin": 90 },
+    { "id": 900102, "home": "Brazil", "away": "Spain", "offsetMin": 180 },
+    { "id": 900103, "home": "England", "away": "Portugal", "offsetMin": 300 },
+    { "id": 900104, "home": "Germany", "away": "Netherlands", "offsetMin": 1440 },
+    { "id": 900105, "home": "Morocco", "away": "Croatia", "offsetMin": 1620 },
+    { "id": 900106, "home": "Japan", "away": "Belgium", "offsetMin": 2880 },
+    { "id": 900201, "home": "Uruguay", "away": "Mexico", "offsetMin": -200, "homeGoals": 2, "awayGoals": 1 },
+    { "id": 900202, "home": "Colombia", "away": "Senegal", "offsetMin": -260, "homeGoals": 1, "awayGoals": 1 },
+    { "id": 900203, "home": "USA", "away": "Canada", "offsetMin": -320, "homeGoals": 0, "awayGoals": 3 }
+  ]
+}

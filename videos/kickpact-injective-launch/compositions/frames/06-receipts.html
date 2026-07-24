@@ -1,0 +1,434 @@
+<template>
+  <style>
+    /* ── 06-receipts · Feature 3 — verifiable receipts (16:9 landscape 1920×1080) ──
+       Left/right split: KickpactPixel messaging + periwinkle ORACLE ATTESTATION
+       callout on the LEFT; the real settled-receipt phone on the RIGHT, reticle-
+       linked to the callout. Navy #10162e ground + periwinkle #627eea ink (the only
+       ink). Success green #54c468 is the single accent; gold #e8b84b touches the ✓
+       only. Units in cqw/cqh against the #root size container. Style root via #root. */
+    @font-face {
+      font-family: "KickpactPixel";
+      src: url("assets/fonts/KickpactPixel.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "KickpactDisplay";
+      src: url("assets/fonts/KickpactDisplay.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      background: transparent;
+      color: #627eea;
+      font-family: "KickpactDisplay", sans-serif;
+      --navy: #10162e;
+      --navy2: #1b2548;
+      --ink: #627eea;
+      --ink-soft: #8aa0f5;
+      --grid: rgba(98, 126, 234, 0.12);
+      --faint: rgba(98, 126, 234, 0.24);
+      --green: #54c468;
+      --gold: #e8b84b;
+      --pixel: "KickpactPixel", monospace;
+    }
+
+    /* ── ground: full-bleed navy + graph-paper grid (its own clip, never #root) ── */
+    #rc-ground {
+      position: absolute;
+      inset: 0;
+      background-color: var(--navy);
+      background-image:
+        linear-gradient(var(--faint) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, var(--faint) 1.5px, transparent 1.5px),
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 200px 200px, 200px 200px, 40px 40px, 40px 40px;
+      background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+      will-change: transform, opacity;
+    }
+
+    /* ── framing hairlines ── */
+    #rc-hairtop,
+    #rc-hairbot {
+      position: absolute;
+      left: 4.17cqw;
+      width: 91.67cqw;
+      height: 2px;
+      background: var(--ink);
+      will-change: transform;
+    }
+    #rc-hairtop { top: 12.22cqh; }
+    #rc-hairbot { top: 80.74cqh; }
+
+    /* ── top chrome ── */
+    #rc-tag {
+      position: absolute;
+      left: 4.17cqw;
+      top: 6.48cqh;
+      font-family: var(--pixel);
+      font-size: 1.09cqw;
+      letter-spacing: 0.16em;
+      color: var(--ink);
+      text-transform: uppercase;
+      white-space: nowrap;
+      will-change: transform, opacity;
+    }
+    #rc-qr {
+      position: absolute;
+      left: 92.08cqw;
+      top: 5.37cqh;
+      will-change: transform, opacity;
+    }
+    #rc-footer {
+      position: absolute;
+      left: 4.17cqw;
+      top: 81.85cqh;
+      width: 91.67cqw;
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--pixel);
+      font-size: 0.83cqw;
+      letter-spacing: 0.14em;
+      color: rgba(98, 126, 234, 0.55);
+      text-transform: uppercase;
+      will-change: transform, opacity;
+    }
+
+    /* ── LEFT: headline block ── */
+    #rc-lead {
+      position: absolute;
+      left: 4.27cqw;
+      top: 16.67cqh;
+      font-family: var(--pixel);
+      font-size: 1.25cqw;
+      letter-spacing: 0.2em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      will-change: transform, opacity;
+    }
+    #rc-keyword {
+      position: absolute;
+      left: 4.17cqw;
+      top: 19.81cqh;
+      display: inline-block;
+      padding: 6px 26px 14px;
+      background: var(--ink);
+      color: var(--navy);
+      font-family: var(--pixel);
+      font-size: 6.15cqw;
+      line-height: 1;
+      white-space: nowrap;
+      clip-path: inset(0 100% 0 0);
+      will-change: clip-path, opacity;
+    }
+    #rc-sublabel {
+      position: absolute;
+      left: 4.27cqw;
+      top: 34.44cqh;
+      font-family: var(--pixel);
+      font-size: 1.04cqw;
+      letter-spacing: 0.18em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      will-change: transform, opacity;
+    }
+
+    /* ── LEFT: ORACLE ATTESTATION callout ── */
+    #rc-tab {
+      position: absolute;
+      left: 4.17cqw;
+      top: 42.22cqh;
+      height: 3.15cqh;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      background: var(--ink);
+      color: var(--navy);
+      font-family: var(--pixel);
+      font-size: 0.83cqw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      will-change: transform, opacity;
+    }
+    #rc-panel {
+      position: absolute;
+      left: 4.17cqw;
+      top: 45.37cqh;
+      width: 24.48cqw;
+      height: 27.78cqh;
+      background: var(--navy2);
+      border: 1.5px solid var(--ink);
+      will-change: transform, opacity;
+    }
+    #rc-panel .rc-plabel {
+      position: absolute;
+      left: 1.25cqw;
+      font-family: var(--pixel);
+      font-size: 0.89cqw;
+      letter-spacing: 0.14em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #rc-panel .rc-l1 { top: 2.22cqh; }
+    #rc-panel .rc-l2 { top: 11.85cqh; }
+    #rc-score {
+      position: absolute;
+      left: 1.25cqw;
+      top: 4.07cqh;
+      font-family: var(--pixel);
+      font-size: 2.4cqw;
+      line-height: 1;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    #rc-panel .rc-pdiv {
+      position: absolute;
+      left: 1.25cqw;
+      top: 10.2cqh;
+      width: 21.98cqw;
+      height: 1px;
+      background: var(--faint);
+    }
+    #rc-signer {
+      position: absolute;
+      left: 1.25cqw;
+      top: 13.89cqh;
+      font-family: monospace;
+      font-size: 1.15cqw;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+    }
+
+    /* ── success accent: green VERIFIED ON-CHAIN ✓ pill (over the callout foot) ── */
+    #rc-pill {
+      position: absolute;
+      left: 5.21cqw;
+      top: 65.37cqh;
+      width: 22.4cqw;
+      height: 5.19cqh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(84, 196, 104, 0.14);
+      border: 2.5px solid var(--green);
+      will-change: transform, opacity;
+    }
+    #rc-pill .rc-ptxt {
+      font-family: var(--pixel);
+      font-size: 1.25cqw;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--green);
+      line-height: 1;
+    }
+    #rc-check {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 1.56cqw;
+      line-height: 1;
+      color: var(--gold); /* gold on the tick only */
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    /* one-shot confirmation pulse behind the pill */
+    #rc-ring {
+      position: absolute;
+      left: 5.21cqw;
+      top: 65.37cqh;
+      width: 22.4cqw;
+      height: 5.19cqh;
+      border: 2px solid var(--green);
+      will-change: transform, opacity;
+    }
+
+    /* ── RIGHT: phone (hero device, real settled receipt) ── */
+    #rc-phone {
+      position: absolute;
+      left: 67.19cqw;
+      top: 12.04cqh;
+      width: 19.48cqw;
+      height: 67.69cqh;
+      will-change: transform, opacity;
+    }
+    #rc-phone img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: 1px solid rgba(98, 126, 234, 0.35);
+    }
+    #rc-phone .rc-br {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+    }
+    #rc-phone .rc-br.tl { left: -8px; top: -8px; border-left: 3px solid var(--ink); border-top: 3px solid var(--ink); }
+    #rc-phone .rc-br.tr { right: -8px; top: -8px; border-right: 3px solid var(--ink); border-top: 3px solid var(--ink); }
+    #rc-phone .rc-br.bl { left: -8px; bottom: -8px; border-left: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+    #rc-phone .rc-br.br { right: -8px; bottom: -8px; border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+
+    /* ── reticle locked onto the receipt's ORACLE ATTESTATION block ── */
+    #rc-reticle {
+      position: absolute;
+      left: 67.71cqw;
+      top: 26.11cqh;
+      width: 18.54cqw;
+      height: 11.48cqh;
+      border: 1.5px solid rgba(98, 126, 234, 0.55);
+      will-change: transform, opacity;
+    }
+    #rc-reticle .rc-rk {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+    }
+    #rc-reticle .rc-rk.tl { left: -2px; top: -2px; border-left: 3px solid var(--ink); border-top: 3px solid var(--ink); }
+    #rc-reticle .rc-rk.tr { right: -2px; top: -2px; border-right: 3px solid var(--ink); border-top: 3px solid var(--ink); }
+    #rc-reticle .rc-rk.bl { left: -2px; bottom: -2px; border-left: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+    #rc-reticle .rc-rk.br { right: -2px; bottom: -2px; border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+
+    /* ── connector: reticle → callout ("zoom" pull) ── */
+    #rc-link {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+    #rc-link .rc-conn {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 2;
+      stroke-dasharray: 762;
+      stroke-dashoffset: 762;
+    }
+    #rc-link .rc-node {
+      fill: var(--ink);
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="06-receipts" data-width="1920" data-height="1080" data-duration="4.831">
+    <!-- ground -->
+    <div id="rc-ground" class="clip" data-start="0" data-duration="4.831" data-track-index="0"></div>
+
+    <!-- framing hairlines -->
+    <div id="rc-hairtop" class="clip" data-start="0" data-duration="4.831" data-track-index="1"></div>
+    <div id="rc-hairbot" class="clip" data-start="0" data-duration="4.831" data-track-index="2"></div>
+
+    <!-- top chrome -->
+    <div id="rc-tag" class="clip" data-start="0.05" data-duration="4.781" data-track-index="3">03 &middot; VERIFIABLE RECEIPTS</div>
+    <svg id="rc-qr" class="clip" data-start="0.3" data-duration="4.531" data-track-index="4" width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#627eea">
+        <rect x="0" y="0" width="8" height="8"/><rect x="9" y="0" width="8" height="8"/>
+        <rect x="0" y="9" width="8" height="8"/><rect x="9" y="9" width="8" height="8"/>
+        <rect x="54" y="0" width="8" height="8"/><rect x="63" y="0" width="8" height="8"/>
+        <rect x="54" y="9" width="8" height="8"/><rect x="63" y="9" width="8" height="8"/>
+        <rect x="0" y="54" width="8" height="8"/><rect x="9" y="54" width="8" height="8"/>
+        <rect x="0" y="63" width="8" height="8"/><rect x="9" y="63" width="8" height="8"/>
+        <rect x="27" y="18" width="8" height="8"/><rect x="36" y="27" width="8" height="8"/>
+        <rect x="27" y="36" width="8" height="8"/><rect x="45" y="18" width="8" height="8"/>
+        <rect x="18" y="45" width="8" height="8"/><rect x="54" y="36" width="8" height="8"/>
+        <rect x="63" y="45" width="8" height="8"/><rect x="45" y="54" width="8" height="8"/>
+        <rect x="36" y="63" width="8" height="8"/><rect x="63" y="63" width="8" height="8"/>
+      </g>
+    </svg>
+
+    <!-- RIGHT: phone hero -->
+    <div id="rc-phone" class="clip" data-start="0.1" data-duration="4.731" data-track-index="5">
+      <img src="assets/app-receipt.png" alt="Settled Kickpact receipt with oracle attestation" />
+      <span class="rc-br tl"></span><span class="rc-br tr"></span>
+      <span class="rc-br bl"></span><span class="rc-br br"></span>
+    </div>
+
+    <!-- reticle over the ORACLE ATTESTATION block -->
+    <div id="rc-reticle" class="clip" data-start="1.0" data-duration="3.831" data-track-index="6">
+      <span class="rc-rk tl"></span><span class="rc-rk tr"></span>
+      <span class="rc-rk bl"></span><span class="rc-rk br"></span>
+    </div>
+
+    <!-- connector: reticle → callout -->
+    <svg id="rc-link" class="clip" data-start="1.25" data-duration="3.581" data-track-index="7" viewBox="0 0 1920 1080" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <line class="rc-conn" x1="1300" y1="368" x2="552" y2="500" />
+      <rect class="rc-node" x="1294" y="362" width="12" height="12" />
+      <rect class="rc-node" x="546" y="494" width="12" height="12" />
+    </svg>
+
+    <!-- LEFT: headline -->
+    <div id="rc-lead" class="clip" data-start="0.45" data-duration="4.381" data-track-index="8">Proof, not trust</div>
+    <div id="rc-keyword" class="clip" data-start="1.05" data-duration="3.781" data-track-index="9">verify</div>
+    <div id="rc-sublabel" class="clip" data-start="1.3" data-duration="3.531" data-track-index="10">From your phone</div>
+
+    <!-- LEFT: ORACLE ATTESTATION callout -->
+    <div id="rc-tab" class="clip" data-start="1.18" data-duration="3.651" data-track-index="11">Oracle attestation</div>
+    <div id="rc-panel" class="clip" data-start="1.35" data-duration="3.481" data-track-index="12">
+      <div class="rc-plabel rc-l1">Final score &middot; signed by oracle</div>
+      <div id="rc-score">2 &mdash; 1</div>
+      <div class="rc-pdiv"></div>
+      <div class="rc-plabel rc-l2">Oracle signer</div>
+      <div id="rc-signer">0x02bA&hellip;fc8a</div>
+    </div>
+
+    <!-- success pill + pulse -->
+    <div id="rc-pill" class="clip" data-start="2.15" data-duration="2.681" data-track-index="13">
+      <span class="rc-ptxt">Verified on-chain</span><span id="rc-check">&#10003;</span>
+    </div>
+    <div id="rc-ring" class="clip" data-start="2.65" data-duration="0.65" data-track-index="14"></div>
+
+    <!-- bottom chrome -->
+    <div id="rc-footer" class="clip" data-start="3.3" data-duration="1.531" data-track-index="15">
+      <span>Proof receipt &middot; settle tx 0xe27600&hellip;a32</span><span>06 / 07</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    (function () {
+      var tl = gsap.timeline({ paused: true });
+
+      // ── Scene 1 (0.0–~1.0s): ground + hero receipt rises on the right, headline lead ──
+      tl.fromTo("#rc-ground", { opacity: 0, scale: 1.05 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }, 0);
+      tl.fromTo("#rc-hairtop", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.1);
+      tl.fromTo("#rc-hairbot", { scaleX: 0, transformOrigin: "right center" }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.15);
+      tl.fromTo("#rc-tag", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.12);
+      tl.fromTo("#rc-qr", { opacity: 0, scale: 0.85, transformOrigin: "center" }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.3);
+      tl.fromTo("#rc-phone", { opacity: 0, y: 120, scale: 0.965 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: "power3.out" }, 0.1);
+      tl.fromTo("#rc-lead", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.45);
+
+      // ── Scene 2 (~1.0–~2.1s): reticle locks the ATTESTATION block, keyword wipes in, callout pulls out ──
+      tl.fromTo("#rc-reticle", { opacity: 0, scale: 1.14, transformOrigin: "center" }, { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" }, 1.0);
+      tl.fromTo("#rc-keyword", { opacity: 0, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)", duration: 0.6, ease: "power3.out" }, 1.05);
+      tl.fromTo("#rc-tab", { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 1.18);
+      tl.fromTo("#rc-link .rc-conn", { strokeDashoffset: 762 }, { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" }, 1.25);
+      tl.fromTo("#rc-link .rc-node", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power1.out" }, 1.85);
+      tl.fromTo("#rc-sublabel", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 1.3);
+      tl.fromTo("#rc-panel", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 1.35);
+
+      // ── Scene 3 (~2.1–~3.3s): the success pill scales in, ✓ ticks gold, pulse ──
+      tl.fromTo("#rc-pill", { opacity: 0, scale: 0.7, transformOrigin: "center" }, { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" }, 2.15);
+      tl.fromTo("#rc-check", { opacity: 0, scale: 0.3, transformOrigin: "center" }, { opacity: 1, scale: 1, duration: 0.34, ease: "back.out(1.4)" }, 2.6);
+      tl.fromTo("#rc-ring", { opacity: 0.6, scale: 1, transformOrigin: "center" }, { opacity: 0, scale: 1.35, duration: 0.6, ease: "power2.out" }, 2.65);
+      tl.set("#rc-ring", { autoAlpha: 0 }, 3.25); // hard kill — pin hidden state for non-linear seeking past the pulse
+
+      // ── Scene 4 (~3.3–4.331s): proof / tx readout resolves, hold ──
+      tl.fromTo("#rc-footer", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 3.3);
+
+      window.__timelines["06-receipts"] = tl;
+    })();
+  </script>
+</template>

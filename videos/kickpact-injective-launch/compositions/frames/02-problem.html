@@ -1,0 +1,292 @@
+<template id="02-problem-template" data-composition-id="02-problem" data-width="1920" data-height="1080">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+<style>
+  @font-face { font-family: 'KickpactPixel'; src: url('assets/fonts/KickpactPixel.ttf') format('truetype'); font-weight: 400; font-display: block; }
+
+  #root {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    container-type: size;
+    background: transparent;
+    font-family: "KickpactPixel", ui-monospace, monospace;
+    color: #627eea;
+    --paper: #10162e;
+    --paper-2: #1b2548;
+    --ink: #627eea;
+    --ink-soft: #8aa0f5;
+    --grid: rgba(98, 126, 234, 0.12);
+    --ink-faint: rgba(98, 126, 234, 0.22);
+    --gold: #e8b84b;
+    --success: #54c468;
+  }
+
+  /* ── full-bleed ground: navy field + permanent graph-paper grid ──
+     authored on dedicated clips, never on #root ── */
+  #p2-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+  }
+  #p2-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+    background-size: 42px 42px;
+    opacity: 0;
+  }
+
+  /* ── top / bottom cobalt hairlines ── */
+  .p2-hl {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    height: 2px;
+    background: var(--ink);
+    transform: scaleX(0);
+  }
+  #p2-hl-top { top: 88px; transform-origin: left center; }
+  #p2-hl-bot { top: 872px; transform-origin: right center; }
+
+  /* ── chrome ── */
+  #p2-kicker {
+    position: absolute;
+    left: 80px;
+    top: 108px;
+    font-size: 1.05cqw;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    opacity: 0;
+  }
+  #p2-pagenum {
+    position: absolute;
+    right: 80px;
+    top: 828px;
+    font-size: 1.05cqw;
+    letter-spacing: 0.16em;
+    text-align: right;
+    color: var(--ink-soft);
+    opacity: 0;
+  }
+
+  /* ── the trust-assumption tokens: a wide row of three columns ── */
+  .p2-col {
+    position: absolute;
+    top: 248px;
+    width: 560px;
+    opacity: 0;
+  }
+  #p2-col0 { left: 80px; }
+  #p2-col1 { left: 680px; }
+  #p2-col2 { left: 1280px; }
+  .p2-crule {
+    width: 560px;
+    height: 3px;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  .p2-ord {
+    margin-top: 16px;
+    font-size: 1.1cqw;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .p2-line {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .p2-mark {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    background: var(--ink);
+  }
+  .p2-txt {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 2.3cqw;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .p2-strike {
+    position: absolute;
+    left: -8px;
+    right: -8px;
+    top: calc(50% - 3px);
+    height: 5px;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  /* ── pixel-dust bands (crumble on strike) ── */
+  .p2-dust {
+    position: absolute;
+    top: 318px;
+    height: 42px;
+    opacity: 0;
+    background-image:
+      repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 9px),
+      repeating-linear-gradient(0deg, var(--ink) 0 3px, transparent 3px 9px);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);
+  }
+  #p2-dust0 { left: 120px; width: 300px; }
+  #p2-dust1 { left: 720px; width: 300px; }
+  #p2-dust2 { left: 1320px; width: 460px; }
+
+  /* ── the answer: KICKPACT / doesn't — centered, held to end ── */
+  #p2-answer {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    top: 452px;
+    text-align: center;
+  }
+  #p2-eyebrow {
+    display: block;
+    font-size: 1.7cqw;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    opacity: 0;
+  }
+  #p2-block {
+    display: inline-block;
+    margin-top: 22px;
+    padding: 20px 46px 30px;
+    background: var(--ink);
+    transform-origin: center center;
+    opacity: 0;
+  }
+  #p2-doesnt {
+    display: block;
+    font-family: "KickpactPixel", ui-monospace, monospace;
+    font-size: 12cqw;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--paper);
+  }
+  #p2-snap {
+    display: block;
+    width: 620px;
+    height: 6px;
+    margin: 26px auto 0;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: center center;
+  }
+</style>
+
+<div id="root" data-composition-id="02-problem" data-start="0" data-duration="4.98" data-width="1920" data-height="1080">
+  <!-- full-bleed ground -->
+  <div id="p2-bg" class="clip" data-start="0" data-duration="4.98" data-track-index="0"></div>
+  <div id="p2-grid" class="clip" data-start="0" data-duration="4.98" data-track-index="1"></div>
+
+  <!-- hairlines -->
+  <div id="p2-hl-top" class="p2-hl clip" data-start="0.1" data-duration="4.88" data-track-index="2"></div>
+  <div id="p2-hl-bot" class="p2-hl clip" data-start="0.1" data-duration="4.88" data-track-index="3"></div>
+
+  <!-- chrome -->
+  <div id="p2-kicker" class="clip" data-start="0.2" data-duration="4.78" data-track-index="4">TRUST ASSUMPTIONS</div>
+  <div id="p2-pagenum" class="clip" data-start="0.35" data-duration="4.63" data-track-index="5">02 / 07</div>
+
+  <!-- tokens as a wide row of columns -->
+  <div id="p2-col0" class="p2-col clip" data-start="0.3" data-duration="4.68" data-track-index="6">
+    <div id="p2-crule0" class="p2-crule"></div>
+    <div class="p2-ord">01</div>
+    <div class="p2-line">
+      <span id="p2-mark0" class="p2-mark"></span>
+      <span id="p2-txt0" class="p2-txt">ADMIN KEY<i id="p2-strike0" class="p2-strike"></i></span>
+    </div>
+  </div>
+  <div id="p2-col1" class="p2-col clip" data-start="0.85" data-duration="4.13" data-track-index="7">
+    <div id="p2-crule1" class="p2-crule"></div>
+    <div class="p2-ord">02</div>
+    <div class="p2-line">
+      <span id="p2-mark1" class="p2-mark"></span>
+      <span id="p2-txt1" class="p2-txt">CUSTODIAN<i id="p2-strike1" class="p2-strike"></i></span>
+    </div>
+  </div>
+  <div id="p2-col2" class="p2-col clip" data-start="1.4" data-duration="3.58" data-track-index="8">
+    <div id="p2-crule2" class="p2-crule"></div>
+    <div class="p2-ord">03</div>
+    <div class="p2-line">
+      <span id="p2-mark2" class="p2-mark"></span>
+      <span id="p2-txt2" class="p2-txt">TRUSTED ORACLE<i id="p2-strike2" class="p2-strike"></i></span>
+    </div>
+  </div>
+
+  <!-- pixel dust -->
+  <div id="p2-dust0" class="p2-dust clip" data-start="2.1" data-duration="0.55" data-track-index="9"></div>
+  <div id="p2-dust1" class="p2-dust clip" data-start="2.5" data-duration="0.55" data-track-index="10"></div>
+  <div id="p2-dust2" class="p2-dust clip" data-start="2.9" data-duration="0.55" data-track-index="11"></div>
+
+  <!-- the answer -->
+  <div id="p2-answer">
+    <span id="p2-eyebrow" class="clip" data-start="3.32" data-duration="1.66" data-track-index="12">KICKPACT</span>
+    <span id="p2-block" class="clip" data-start="3.55" data-duration="1.43" data-track-index="13">
+      <span id="p2-doesnt">doesn't</span>
+    </span>
+    <span id="p2-snap" class="clip" data-start="3.6" data-duration="1.38" data-track-index="14"></span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+
+    // establish the ground — grid draws in, hairlines snap out from the edges
+    tl.fromTo("#p2-grid", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.0);
+    tl.fromTo("#p2-hl-top", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.1);
+    tl.fromTo("#p2-hl-bot", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power3.out" }, 0.1);
+    tl.fromTo("#p2-kicker", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+    tl.fromTo("#p2-pagenum", { opacity: 0 }, { opacity: 0.55, duration: 0.4, ease: "power1.out" }, 0.35);
+
+    // the three trust assumptions arrive across the row, one per beat: rule draws, column rises
+    function enterCol(i, t) {
+      tl.fromTo("#p2-crule" + i, { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power3.out" }, t);
+      tl.fromTo("#p2-col" + i, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, t);
+    }
+    enterCol(0, 0.3);
+    enterCol(1, 0.85);
+    enterCol(2, 1.4);
+
+    // strike-through -> desaturate -> drop out (pixel-dust), paced across "trust a custodian"
+    function strike(i, t) {
+      tl.fromTo("#p2-strike" + i, { scaleX: 0 }, { scaleX: 1, duration: 0.26, ease: "power2.inOut" }, t);
+      tl.to("#p2-txt" + i, { color: "#4b5578", duration: 0.42, ease: "power2.in" }, t + 0.22);
+      tl.to("#p2-mark" + i, { backgroundColor: "rgba(98,126,234,0.22)", duration: 0.42, ease: "power2.in" }, t + 0.22);
+      tl.to("#p2-col" + i, { opacity: 0.12, y: 22, duration: 0.44, ease: "power2.in" }, t + 0.24);
+      tl.fromTo("#p2-dust" + i, { opacity: 0.72, y: 0, scaleY: 1 }, { opacity: 0, y: 34, scaleY: 0.5, duration: 0.5, ease: "power1.in" }, t + 0.2);
+    }
+    strike(0, 1.9);
+    strike(1, 2.3);
+    strike(2, 2.7);
+
+    // the answer lands hard: label ticks in on "Kickpact", block slams centered + hairline snaps on "doesn't"
+    tl.fromTo("#p2-eyebrow", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.24, ease: "power2.out" }, 3.32);
+    tl.fromTo("#p2-block", { opacity: 0, scale: 1.09 }, { opacity: 1, scale: 1, duration: 0.22, ease: "power4.out" }, 3.55);
+    tl.fromTo("#p2-snap", { scaleX: 0 }, { scaleX: 1, duration: 0.16, ease: "power4.out" }, 3.6);
+
+    // anchor the timeline across the full frame
+    tl.to({}, { duration: 4.48 }, 0);
+
+    window.__timelines["02-problem"] = tl;
+  })();
+</script>
+</template>
