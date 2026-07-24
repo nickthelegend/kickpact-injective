@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
 const ORACLE = "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a"
-const REPO = "https://github.com/nickthelegend/kickpact/tree/solana"
+const REPO = "https://github.com/nickthelegend/kickpact-injective"
 
 const FEATURES = [
   {

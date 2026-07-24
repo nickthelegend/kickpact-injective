@@ -12,13 +12,13 @@ import { Button } from "@/components/ui/button"
 // artefacts still live on v2.0.0 and pointing them at v2.1.0 404s.
 const REL_ANDROID = "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana"
 const REL_DESKTOP = "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana"
-const REPO = "https://github.com/nickthelegend/kickpact/tree/solana"
+const REPO = "https://github.com/nickthelegend/kickpact-injective"
 const DASHBOARD = "https://kickpact-solana.vercel.app"
 
 // Download targets are resolved at runtime from a raw pointer file in the repo,
 // so the APK URL can be re-pointed (new release, mirror) by editing one file on
 // `solana` — no landing redeploy. The URLs below are the fallback.
-const POINTER = "https://raw.githubusercontent.com/nickthelegend/kickpact/solana/download.json"
+const POINTER = "https://raw.githubusercontent.com/nickthelegend/kickpact-injective/main/download.json"
 
 const SHOTS: [string, string][] = [
   ["sol-00-connect", "Connect a real wallet"],

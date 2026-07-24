@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
-const REPO = "https://github.com/nickthelegend/kickpact/tree/solana"
+const REPO = "https://github.com/nickthelegend/kickpact-injective"
 const DASHBOARD = "https://kickpact-solana.vercel.app"
 
 const WAYS = [
