@@ -296,3 +296,110 @@ describe("Kickpact", () => {
     await expect(kickpact.connect(bob).refundExpired(1)).to.be.revertedWithCustomError(kickpact, "AlreadyClaimed")
   })
 })
+
+// ── EIP-3009: the gasless transfer x402 settles with ────────────────────────
+describe("KUSD — EIP-3009 transferWithAuthorization", () => {
+  const AUTH_TYPES = {
+    TransferWithAuthorization: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+    ],
+  }
+
+  async function setup() {
+    const [, , , , facilitator] = await ethers.getSigners()
+    const KUSD = await ethers.getContractFactory("KUSD")
+    const kusd = await KUSD.deploy()
+    await kusd.waitForDeployment()
+    const payer = ethers.Wallet.createRandom() // never funded with gas
+    await kusd.connect(facilitator).faucet(100n * ONE_KUSD)
+    await kusd.connect(facilitator).transfer(payer.address, 50n * ONE_KUSD)
+    const addr = await kusd.getAddress()
+    const domain = { name: "Kickpact USD", version: "1", chainId: 1439, verifyingContract: addr }
+    const now = BigInt(await time.latest())
+    return { kusd, payer, facilitator, addr, domain, now }
+  }
+
+  const auth = (payer: any, domain: any, to: string, value: bigint, now: bigint, nonce: string) => ({
+    value: { from: payer.address, to, value, validAfter: now - 10n, validBefore: now + 3600n, nonce },
+    sign: () =>
+      payer.signTypedData(domain, AUTH_TYPES, {
+        from: payer.address,
+        to,
+        value,
+        validAfter: now - 10n,
+        validBefore: now + 3600n,
+        nonce,
+      }),
+  })
+
+  it("moves tokens on a signed authorization — payer needs no gas and no approve", async () => {
+    const { kusd, payer, facilitator, domain, now } = await setup()
+    const to = facilitator.address
+    const nonce = ethers.hexlify(ethers.randomBytes(32))
+    const a = auth(payer, domain, to, 10n * ONE_KUSD, now, nonce)
+    const sig = await a.sign()
+
+    expect(await ethers.provider.getBalance(payer.address)).to.equal(0n) // payer has no INJ
+    const before = await kusd.balanceOf(to)
+    await expect(
+      kusd
+        .connect(facilitator)
+        .transferWithAuthorization(a.value.from, to, a.value.value, a.value.validAfter, a.value.validBefore, nonce, sig),
+    )
+      .to.emit(kusd, "AuthorizationUsed")
+      .withArgs(payer.address, nonce)
+    expect(await kusd.balanceOf(to)).to.equal(before + 10n * ONE_KUSD)
+    expect(await kusd.balanceOf(payer.address)).to.equal(40n * ONE_KUSD)
+    expect(await kusd.authorizationState(payer.address, nonce)).to.equal(true)
+  })
+
+  it("rejects a replayed nonce, a forged signature and an expired authorization", async () => {
+    const { kusd, payer, facilitator, domain, now } = await setup()
+    const to = facilitator.address
+    const nonce = ethers.hexlify(ethers.randomBytes(32))
+    const a = auth(payer, domain, to, ONE_KUSD, now, nonce)
+    const sig = await a.sign()
+    const send = (s: string, n = nonce, vb = a.value.validBefore) =>
+      kusd.connect(facilitator).transferWithAuthorization(payer.address, to, ONE_KUSD, a.value.validAfter, vb, n, s)
+
+    await send(sig)
+    await expect(send(sig)).to.be.revertedWithCustomError(kusd, "AuthorizationAlreadyUsed") // replay
+
+    // a signature from someone else over the same terms
+    const impostor = ethers.Wallet.createRandom()
+    const nonce2 = ethers.hexlify(ethers.randomBytes(32))
+    const forged = await impostor.signTypedData(domain, AUTH_TYPES, {
+      from: payer.address, to, value: ONE_KUSD, validAfter: a.value.validAfter, validBefore: a.value.validBefore, nonce: nonce2,
+    })
+    await expect(send(forged, nonce2)).to.be.revertedWithCustomError(kusd, "InvalidSignature")
+
+    // expired
+    const nonce3 = ethers.hexlify(ethers.randomBytes(32))
+    const past = now - 1n
+    const expired = await payer.signTypedData(domain, AUTH_TYPES, {
+      from: payer.address, to, value: ONE_KUSD, validAfter: a.value.validAfter, validBefore: past, nonce: nonce3,
+    })
+    await expect(send(expired, nonce3, past)).to.be.revertedWithCustomError(kusd, "AuthorizationExpired")
+  })
+
+  it("lets the payer cancel an unused authorization", async () => {
+    const { kusd, payer, facilitator, domain, now } = await setup()
+    const nonce = ethers.hexlify(ethers.randomBytes(32))
+    const a = auth(payer, domain, facilitator.address, ONE_KUSD, now, nonce)
+    const sig = await a.sign()
+    const cancelSig = await payer.signTypedData(
+      domain,
+      { CancelAuthorization: [{ name: "authorizer", type: "address" }, { name: "nonce", type: "bytes32" }] },
+      { authorizer: payer.address, nonce },
+    )
+    await kusd.connect(facilitator).cancelAuthorization(payer.address, nonce, cancelSig)
+    await expect(
+      kusd.connect(facilitator).transferWithAuthorization(payer.address, facilitator.address, ONE_KUSD, a.value.validAfter, a.value.validBefore, nonce, sig),
+    ).to.be.revertedWithCustomError(kusd, "AuthorizationAlreadyUsed")
+  })
+})

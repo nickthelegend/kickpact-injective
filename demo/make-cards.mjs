@@ -23,7 +23,7 @@ html,body{width:1920px;height:1080px;background:#10162e;overflow:hidden;font-fam
 
 const cards = {
   intro: shell(`<div class="kick">KICKPACT</div><div class="big">THE&nbsp;APP</div><div class="sub">LIVE ON INJECTIVE EVM TESTNET</div><div class="foot">SELF-CUSTODIAL · ORACLE-SIGNED · SEMI-FINALS</div>`),
-  outro: shell(`<div class="kick">WORLD CUP PREDICTION POOLS</div><div class="big">KICKPACT</div><div class="mid">Predict together.</div><div class="sub gold">TRUST THE DATA, NOT US</div><div class="mono">Kickpact 0x528c…62DB5 · Injective EVM testnet · verified on Blockscout</div><div class="foot">GET THE APP · ON INJECTIVE</div>`),
+  outro: shell(`<div class="kick">WORLD CUP PREDICTION POOLS</div><div class="big">KICKPACT</div><div class="mid">Predict together.</div><div class="sub gold">TRUST THE DATA, NOT US</div><div class="mono">Kickpact 0x4D14…0809 · Injective EVM testnet · verified on Blockscout</div><div class="foot">GET THE APP · ON INJECTIVE</div>`),
 }
 
 const browser = await chromium.launch()

@@ -3,10 +3,10 @@
   "chainId": 1439,
   "rpc": "https://k8s.testnet.json-rpc.injective.network/",
   "explorer": "https://testnet.blockscout.injective.network",
-  "kusd": "0xd23799982F14D8B2D85D3615B16e1F9FFbEe0F58",
-  "kickpact": "0x3D288F2eDAa3D47d46DCFd9C6dEe565DdbFb1590",
+  "kusd": "0x52dd70b78993470e05Fc395D2a81F3b9A8B36094",
+  "kickpact": "0x4D142990D1114a86b04F56B36D43c38496FE0809",
   "usdc": "0x0C382e685bbeeFE5d3d9C29e29E341fEE8E84C5d",
-  "kickpactUsdc": "0xaB6CF93cf6e65a8Becc12BEfC1a4Bc87a5d512E6",
+  "kickpactUsdc": "0xe7692F9971683944468B3282e98e64Ca5601585a",
   "oracleSigners": [
     "0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a",
     "0xc9160042dF36d60cF2d9ABed7A6491b18D263e03",
