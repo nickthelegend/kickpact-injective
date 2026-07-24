@@ -12,15 +12,17 @@
  *
  * Run:  bun run src/server.ts        (PORT=4021 by default)
  *
- * PAYMENT VERIFICATION IS PARTIAL BY DESIGN — see the scope banner in
- * src/x402.ts and the README. The X-PAYMENT authorization is validated
- * structurally and cryptographically (EIP-712 recovery, recipient, amount,
- * time window, single-use nonce), but it is NEVER submitted on-chain: no
- * facilitator, no transferWithAuthorization, no balance check. No USDC moves.
+ * PAYMENTS ARE REAL. A valid X-PAYMENT is verified offline (src/x402.ts), then
+ * pre-flighted and SETTLED on-chain (src/facilitator.ts): the service submits
+ * the payer's EIP-3009 `transferWithAuthorization` from its own gas-paying key
+ * and waits for the transfer to be confirmed in state. The 200 — and the
+ * signatures — are released only after kUSD has actually moved.
  */
 import { ethers } from "ethers"
-import { deployedSigners, deployments, escrows, loadEnv } from "./config.ts"
+import { deployedSigners, deployments, escrows, loadEnv, relayerKey } from "./config.ts"
 import { attest, oracleWallets, RESULT_TYPES, resultDomain, thresholdOf } from "./attest.ts"
+import { rpcProvider } from "./chain.ts"
+import { facilitator } from "./facilitator.ts"
 import { attestableFixtures, fetchFixture, isAttestable, usingLiveApi, type Fixture } from "./fixtures.ts"
 import {
   encodeSettlementResponse,
@@ -36,14 +38,23 @@ loadEnv()
 const d = deployments()
 const PORT = Number(process.env.PORT || process.env.ATTESTOR_PORT || 4021)
 const NETWORK = process.env.ATTESTOR_NETWORK || "injective-testnet"
-/** Atomic units of a 6-decimal token. 10000 = 0.01 USDC. */
+/** Atomic units of a 6-decimal token. 10000 = 0.01 kUSD. */
 const PRICE = process.env.ATTESTOR_PRICE || "10000"
 const MAX_TIMEOUT_SECONDS = Number(process.env.ATTESTOR_MAX_TIMEOUT || 300)
-/** The token payments are denominated in — native USDC on Injective EVM. */
-const ASSET = process.env.USDC_ADDRESS || d.usdc || ""
-/** EIP-3009 domain of that token; advertised in `extra` so payers sign what we check. */
-const ASSET_NAME = process.env.USDC_EIP712_NAME || "USDC"
-const ASSET_VERSION = process.env.USDC_EIP712_VERSION || "2"
+/**
+ * The token payments are denominated in: kUSD, the deployment's EIP-3009 token.
+ *
+ * Not native USDC — deliberately. USDC can't be minted on Injective testnet and
+ * there's no CCTP route to bridge it in, so pricing in USDC would mean either
+ * nobody can pay or we pretend they did. kUSD has an open faucet and the same
+ * EIP-3009 surface, so the payment is real end to end; pointing ATTESTOR_ASSET
+ * at real USDC on a chain where the buyer holds some changes nothing else.
+ */
+const ASSET = process.env.ATTESTOR_ASSET || d.kusd || ""
+const ASSET_SYMBOL = process.env.ATTESTOR_ASSET_SYMBOL || "kUSD"
+/** EIP-3009 domain of that token; advertised in `extra` so payers sign what we submit. */
+const ASSET_NAME = process.env.ATTESTOR_ASSET_EIP712_NAME || "Kickpact USD"
+const ASSET_VERSION = process.env.ATTESTOR_ASSET_EIP712_VERSION || "1"
 
 const SIGNERS = deployedSigners(d)
 const THRESHOLD = thresholdOf(d)
@@ -55,7 +66,7 @@ const DEFAULT_ESCROW = d.kickpact
 
 const nonces = new NonceStore()
 
-if (!ASSET) throw new Error("no payment asset — set USDC_ADDRESS in apps/injective/.env")
+if (!ASSET) throw new Error("no payment asset — deployments.json has no kusd address (or set ATTESTOR_ASSET)")
 if (!PAY_TO) throw new Error("no payTo address — set ATTESTOR_PAY_TO or deploy with oracleSigners")
 if (!DEFAULT_ESCROW) throw new Error("deployments.json has no kickpact address — deploy first")
 if (WALLETS.length < THRESHOLD) {
@@ -63,6 +74,11 @@ if (WALLETS.length < THRESHOLD) {
     `need ${THRESHOLD} of the deployed oracle keys in .env (ORACLE_SIGNER_PRIVATE_KEY, ORACLE_SIGNER_2_PRIVATE_KEY, …); ${WALLETS.length} usable`
   )
 }
+
+// The service is its own x402 facilitator: it pays the gas to submit the
+// payer's authorization. RELAYER_PRIVATE_KEY, else PRIVATE_KEY. Never logged.
+const provider = rpcProvider(d)
+const fac = facilitator(provider, relayerKey(), ASSET)
 
 const json = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body, null, 2) + "\n", {
@@ -116,12 +132,16 @@ function index(origin: string) {
     x402Version: X402_VERSION,
     price: {
       maxAmountRequired: PRICE,
-      humanReadable: `${(Number(PRICE) / 1e6).toFixed(6)} USDC per attestation`,
+      humanReadable: `${(Number(PRICE) / 1e6).toFixed(6)} ${ASSET_SYMBOL} per attestation`,
       asset: ASSET,
+      assetSymbol: ASSET_SYMBOL,
       assetDecimals: 6,
+      assetDomain: { name: ASSET_NAME, version: ASSET_VERSION },
       network: NETWORK,
       payTo: PAY_TO,
       scheme: "exact",
+      settlement: "on-chain EIP-3009 transferWithAuthorization, submitted by this service",
+      faucet: `${ASSET_SYMBOL}.faucet(uint256) is open on testnet — any wallet can fund itself to pay`,
     },
     endpoints: [
       { method: "GET", path: "/", price: "free", description: "this index" },
@@ -149,17 +169,54 @@ function index(origin: string) {
         "authorization.to == payTo, value >= maxAmountRequired",
         "validAfter <= now < validBefore",
         "EIP-712 recovery of the EIP-3009 TransferWithAuthorization signature (recovered == from)",
-        "single-use nonce (in-memory, resets on restart)",
+        "single-use nonce (in-memory claim, plus on-chain authorizationState)",
+        "pre-flight against chain state: balanceOf(from) >= value, authorizationState(from, nonce) == false, block-timestamp window",
+        "ON-CHAIN SETTLEMENT: transferWithAuthorization submitted by this service and confirmed before the goods are released",
       ],
       notImplemented: [
-        "on-chain settlement — transferWithAuthorization is never submitted, no USDC moves",
-        "facilitator /verify or /settle",
-        "balanceOf(from) / authorizationState(from, nonce) / transaction simulation",
+        "no external x402 facilitator — this service settles for itself",
+        "the in-flight nonce claim is process memory; the durable replay guard is the token's authorizationState",
+        "x402 v2 wire shapes (amount / CAIP-2 network / PAYMENT-SIGNATURE)",
       ],
-      note: "A structurally valid authorization from an empty wallet is accepted. Demo service — treat the attestation as free.",
+      settledBy: fac.relayer,
+      note: "The 200 is returned only after the transfer is confirmed in chain state. A signed authorization from an empty wallet is rejected with 402 insufficient_funds.",
     },
     example: `curl -i ${origin}/attest/${900303}`,
   }
+}
+
+/** 402 + an honest X-PAYMENT-RESPONSE. `detail` explains a chain-side failure. */
+function rejected(
+  reqs: PaymentRequirements,
+  reason: string,
+  payer?: string,
+  detail?: string,
+  transaction = ""
+): Response {
+  return json(
+    {
+      ...paymentRequiredBody(`payment rejected: ${reason}`, [reqs]),
+      invalidReason: reason,
+      ...(detail ? { detail } : {}),
+      ...(transaction ? { transaction, explorer: `${d.explorer}/tx/${transaction}` } : {}),
+      settled: false,
+    },
+    {
+      status: 402,
+      headers: {
+        "x-payment-response": encodeSettlementResponse({
+          success: false,
+          errorReason: reason,
+          transaction,
+          network: NETWORK,
+          payer: payer ?? "",
+          asset: reqs.asset,
+          amount: reqs.maxAmountRequired,
+          payTo: reqs.payTo,
+        }),
+      },
+    }
+  )
 }
 
 async function handleAttest(url: URL, req: Request, fixtureIdRaw: string): Promise<Response> {
@@ -192,24 +249,36 @@ async function handleAttest(url: URL, req: Request, fixtureIdRaw: string): Promi
   }
 
   const v = verifyPayment(header, reqs, d.chainId, nonces)
-  if (!v.isValid) {
-    return json(
-      { ...paymentRequiredBody(`payment rejected: ${v.invalidReason}`, [reqs]), invalidReason: v.invalidReason },
-      {
-        status: 402,
-        headers: {
-          "x-payment-response": encodeSettlementResponse({
-            success: false,
-            errorReason: v.invalidReason,
-            transaction: "",
-            network: NETWORK,
-            payer: v.payer ?? "",
-          }),
-        },
-      }
-    )
+  if (!v.isValid) return rejected(reqs, v.invalidReason, v.payer)
+
+  // Reserve the nonce for the duration of settlement so two copies of the same
+  // header can't both reach the chain. Released if settlement fails.
+  if (!nonces.claim(reqs.asset, v.authorization)) {
+    return rejected(reqs, "invalid_exact_evm_payload_authorization_nonce_used", v.payer)
   }
-  nonces.remember(reqs.asset, v.authorization)
+
+  let settlement: Awaited<ReturnType<typeof fac.settle>>
+  try {
+    // Balance is checked against what will actually move (an overpay is allowed
+    // by verifyPayment, and transferWithAuthorization moves the full value).
+    const pre = await fac.preflight(v.authorization, BigInt(v.authorization.value))
+    if (!pre.ok) {
+      nonces.release(reqs.asset, v.authorization)
+      return rejected(reqs, pre.reason, v.payer, pre.detail)
+    }
+    settlement = await fac.settle(v.authorization, v.signature)
+  } catch (e: any) {
+    nonces.release(reqs.asset, v.authorization)
+    return rejected(reqs, "settlement_failed", v.payer, String(e?.message ?? e).slice(0, 200))
+  }
+  if (!settlement.ok) {
+    nonces.release(reqs.asset, v.authorization)
+    return rejected(reqs, settlement.reason, v.payer, settlement.detail, settlement.transaction)
+  }
+  nonces.commit(reqs.asset, v.authorization)
+  console.log(
+    `[attestor] settled ${settlement.amount} ${ASSET_SYMBOL} ${settlement.payer} → ${settlement.recipient}  ${d.explorer}/tx/${settlement.transaction}`
+  )
 
   const a = await attest(
     WALLETS,
@@ -222,14 +291,16 @@ async function handleAttest(url: URL, req: Request, fixtureIdRaw: string): Promi
     fixture.tsMs
   )
 
-  // The authorization was verified offline but never submitted, so settlement
-  // did NOT happen: report that truthfully rather than claiming success.
-  const settlement = encodeSettlementResponse({
-    success: false,
-    errorReason: "settlement_not_implemented",
-    transaction: "",
+  // The tokens are already in the recipient's balance at this point — the
+  // header carries the hash that moved them.
+  const settlementHeader = encodeSettlementResponse({
+    success: true,
+    transaction: settlement.transaction,
     network: NETWORK,
-    payer: v.payer,
+    payer: settlement.payer,
+    asset: reqs.asset,
+    amount: settlement.amount,
+    payTo: settlement.recipient,
   })
 
   return json(
@@ -245,16 +316,36 @@ async function handleAttest(url: URL, req: Request, fixtureIdRaw: string): Promi
         note: "permissionless — any address may submit this for every open pool on the fixture",
       },
       payment: {
-        payer: v.payer,
-        amount: v.authorization.value,
+        settled: true,
+        transaction: settlement.transaction,
+        explorer: `${d.explorer}/tx/${settlement.transaction}`,
+        payer: settlement.payer,
+        recipient: settlement.recipient,
+        amount: settlement.amount,
         asset: reqs.asset,
+        assetSymbol: ASSET_SYMBOL,
+        assetDecimals: 6,
         network: NETWORK,
-        verified: "offline: signature, recipient, amount, time window, nonce",
-        settled: false,
-        settlementNote: "transferWithAuthorization was NOT submitted — no on-chain settlement is implemented",
+        chainId: d.chainId,
+        scheme: "exact via EIP-3009 transferWithAuthorization",
+        settledBy: fac.relayer,
+        nonce: v.authorization.nonce,
+        balances: {
+          payerBefore: settlement.payerBalanceBefore,
+          payerAfter: settlement.payerBalanceAfter,
+          recipientBefore: settlement.recipientBalanceBefore,
+          recipientAfter: settlement.recipientBalanceAfter,
+        },
+        authorizationState: {
+          before: settlement.authorizationStateBefore,
+          after: settlement.authorizationStateAfter,
+          note: "read from the token contract — the nonce is spent, so this X-PAYMENT header cannot be replayed",
+        },
+        verified:
+          "offline (signature, recipient, amount, window, nonce) + on-chain (balance, authorizationState, confirmed transfer)",
       },
     },
-    { headers: { "x-payment-response": settlement } }
+    { headers: { "x-payment-response": settlementHeader } }
   )
 }
 
@@ -285,6 +376,6 @@ const server = Bun.serve({
 })
 
 console.log(`[attestor] http://localhost:${server.port}`)
-console.log(`[attestor] price ${PRICE} atomic (${(Number(PRICE) / 1e6).toFixed(6)}) of ${ASSET} → ${PAY_TO}`)
+console.log(`[attestor] price ${PRICE} atomic (${(Number(PRICE) / 1e6).toFixed(6)} ${ASSET_SYMBOL}) of ${ASSET} → ${PAY_TO}`)
 console.log(`[attestor] oracle ${THRESHOLD}-of-${SIGNERS.length}, ${WALLETS.length} key(s) loaded → escrow ${DEFAULT_ESCROW}`)
-console.log(`[attestor] payments are validated OFFLINE only — no on-chain settlement`)
+console.log(`[attestor] settling on-chain via EIP-3009 from relayer ${fac.relayer} on ${d.network} (${d.rpc})`)

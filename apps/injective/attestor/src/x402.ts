@@ -9,25 +9,21 @@
  *                EIP-3009 TransferWithAuthorization struct the payer signed.
  *   X-PAYMENT-RESPONSE → base64(JSON SettlementResponse)
  *
- * ┌── HONEST SCOPE OF VERIFICATION ─────────────────────────────────────────┐
- * │ IMPLEMENTED (offline, deterministic):                                   │
+ * ┌── WHAT THIS MODULE IS, AND ISN'T ───────────────────────────────────────┐
+ * │ This is the OFFLINE half of the check — cheap, deterministic, no RPC:   │
  * │   · structural decode of the X-PAYMENT header                           │
  * │   · x402Version / scheme / network match what we advertised             │
  * │   · authorization.to == payTo, value >= maxAmountRequired               │
- * │   · validAfter <= now <= validBefore (time window)                      │
+ * │   · validAfter <= now < validBefore (wall-clock time window)            │
  * │   · EIP-712 recovery of the TransferWithAuthorization signature against │
  * │     the token's EIP-3009 domain, and recovered == authorization.from    │
  * │   · single-use nonce (in-memory replay set, pruned at validBefore)      │
  * │                                                                         │
- * │ NOT IMPLEMENTED — do not read this module as proof of payment:          │
- * │   · no on-chain settlement: transferWithAuthorization is NEVER          │
- * │     submitted, so no USDC actually moves                                │
- * │   · no facilitator /verify or /settle call                              │
- * │   · no balanceOf(from) check, no authorizationState(from, nonce) check, │
- * │     no transaction simulation                                           │
- * │   · the replay set is process-memory only — it resets on restart        │
- * │ A structurally valid authorization from an empty wallet passes here.    │
- * │ This is a demo/hackathon service; treat the attestation as free.        │
+ * │ Passing here is NOT payment. The money moves in src/facilitator.ts,     │
+ * │ which pre-flights against chain state (balanceOf, authorizationState,   │
+ * │ block timestamp), submits transferWithAuthorization, and confirms the   │
+ * │ transfer by re-reading state. src/server.ts releases the goods only     │
+ * │ after that returns ok.                                                  │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 import { ethers } from "ethers"
@@ -71,9 +67,13 @@ export interface PaymentPayload {
 export interface SettlementResponse {
   success: boolean
   errorReason?: string
+  /** The real on-chain transferWithAuthorization hash once settled; "" on failure. */
   transaction: string
   network: string
   payer: string
+  asset?: string
+  amount?: string
+  payTo?: string
 }
 
 /** EIP-3009, as referenced by the x402 `exact` EVM scheme. */
@@ -97,12 +97,22 @@ export function paymentRequiredBody(error: string, accepts: PaymentRequirements[
 }
 
 export type VerifyResult =
-  | { isValid: true; payer: string; authorization: Authorization }
+  | { isValid: true; payer: string; authorization: Authorization; signature: string }
   | { isValid: false; invalidReason: string; payer?: string }
 
-/** Single-use nonces, keyed by asset:from:nonce, expiring at validBefore. */
+/**
+ * Single-use nonces, keyed by asset:from:nonce, expiring at validBefore.
+ *
+ * On-chain `authorizationState` is the real replay guard; this is the fast one,
+ * and it also serialises concurrent requests carrying the same header: `claim`
+ * marks a nonce in-flight so a second request can't race the first into
+ * settlement. A settlement that fails is `release`d, so the payer may retry with
+ * the same authorization; one that succeeds is `commit`ted forever (well —
+ * until `validBefore`, after which the chain rejects it anyway).
+ */
 export class NonceStore {
   private used = new Map<string, number>()
+  private pending = new Set<string>()
 
   private key(asset: string, a: Authorization) {
     return `${asset.toLowerCase()}:${a.from.toLowerCase()}:${a.nonce.toLowerCase()}`
@@ -110,11 +120,27 @@ export class NonceStore {
 
   has(asset: string, a: Authorization): boolean {
     this.prune()
-    return this.used.has(this.key(asset, a))
+    const k = this.key(asset, a)
+    return this.used.has(k) || this.pending.has(k)
   }
 
-  remember(asset: string, a: Authorization) {
-    this.used.set(this.key(asset, a), Number(a.validBefore))
+  /** Reserve the nonce for this request. False if it's already spent or in flight. */
+  claim(asset: string, a: Authorization): boolean {
+    if (this.has(asset, a)) return false
+    this.pending.add(this.key(asset, a))
+    return true
+  }
+
+  /** Settlement confirmed on-chain — the nonce is spent. */
+  commit(asset: string, a: Authorization) {
+    const k = this.key(asset, a)
+    this.pending.delete(k)
+    this.used.set(k, Number(a.validBefore))
+  }
+
+  /** Settlement failed — let the payer retry the same authorization. */
+  release(asset: string, a: Authorization) {
+    this.pending.delete(this.key(asset, a))
   }
 
   private prune() {
@@ -133,7 +159,7 @@ const isUint = (v: unknown): v is string => typeof v === "string" && /^[0-9]+$/.
 /**
  * Verify an X-PAYMENT header against the requirements we advertised.
  * See the scope banner at the top of this file: this is offline validation of
- * a payment AUTHORIZATION, not confirmation that funds moved.
+ * a payment AUTHORIZATION. Funds move in src/facilitator.ts, afterwards.
  */
 export function verifyPayment(
   header: string,
@@ -210,7 +236,7 @@ export function verifyPayment(
     return { isValid: false, invalidReason: "invalid_exact_evm_payload_authorization_nonce_used", payer }
   }
 
-  return { isValid: true, payer, authorization: a }
+  return { isValid: true, payer, authorization: a, signature: p.signature }
 }
 
 export function encodeSettlementResponse(r: SettlementResponse): string {

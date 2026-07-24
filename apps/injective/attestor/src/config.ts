@@ -43,6 +43,22 @@ export function deployments(): Deployments {
   return JSON.parse(fs.readFileSync(path.join(INJECTIVE_ROOT, "deployments.json"), "utf8"))
 }
 
+/** The kUSD ABI as compiled — EIP-3009 + faucet + the ERC-20 surface. */
+export function kusdAbi(): any[] {
+  return JSON.parse(fs.readFileSync(path.join(INJECTIVE_ROOT, "abi", "KUSD.json"), "utf8"))
+}
+
+/**
+ * The gas-paying key the service settles payments with. The payer signs an
+ * EIP-3009 authorization and never needs INJ; this key submits it. Falls back to
+ * the deployer key, same precedence as the keeper.
+ */
+export function relayerKey(): string {
+  const pk = process.env.RELAYER_PRIVATE_KEY || process.env.PRIVATE_KEY
+  if (!pk) throw new Error("set RELAYER_PRIVATE_KEY or PRIVATE_KEY in apps/injective/.env — it pays gas to settle payments")
+  return pk
+}
+
 /** The escrow addresses an attestation can be bound to, by short name. */
 export function escrows(d: Deployments): Record<string, string> {
   const out: Record<string, string> = {}
