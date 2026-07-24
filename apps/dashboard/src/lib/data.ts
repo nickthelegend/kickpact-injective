@@ -10,22 +10,46 @@
  *    time. The keeper and mobile app read the SAME snapshot, so fixtureIds
  *    always agree between the pool you open and the score that settles it.
  *
- * There is no on-chain sports oracle any more: a pool is settled by relaying an
- * oracle-signed final score, and the contract derives the outcome from the
- * goals itself. `settlement()` re-recovers that EIP-712 signature in the
- * browser so the receipts explorer can verify a resolution with no trust.
+ * There is no on-chain sports oracle any more: a pool is settled by relaying a
+ * final score signed by an M-of-N oracle key set, and the contract derives the
+ * outcome from the goals itself. `settlement()` re-recovers EVERY EIP-712
+ * signature out of the settle calldata in the browser, so the receipts explorer
+ * can verify a resolution — and see who signed it — with no trust.
  */
 import { ethers } from "ethers"
 import KickpactAbi from "../abi/Kickpact.json"
-import deployment from "../deployment.json"
+import deploymentJson from "../deployment.json"
 import snapshot from "../feed-fixtures.json"
+
+/**
+ * deployment.json as written by the deploy script. The native-USDC escrow is
+ * optional — a deployment that only shipped the kUSD escrow leaves
+ * `usdc`/`kickpactUsdc` null, and the dashboard must stay happy with that.
+ */
+interface Deployment {
+  chainId: number
+  rpc: string
+  explorer: string
+  kusd: string
+  kickpact: string
+  usdc?: string | null
+  kickpactUsdc?: string | null
+  oracleSigners?: string[] | null
+  threshold?: number | null
+}
+const deployment = deploymentJson as Deployment
 
 // ── chain constants (from deployment.json) ──────────────────────────────────
 export const CHAIN_ID = deployment.chainId
 export const RPC = deployment.rpc
 export const KICKPACT_ADDR = deployment.kickpact
 export const KUSD_ADDR = deployment.kusd
-export const ORACLE_SIGNER = deployment.oracleSigner
+/** The native-USDC escrow, if this deployment shipped one (null otherwise). */
+export const KICKPACT_USDC_ADDR: string | null = deployment.kickpactUsdc ?? null
+export const USDC_ADDR: string | null = deployment.usdc ?? null
+/** The oracle key set and how many must co-sign a score (M-of-N). */
+export const ORACLE_SIGNERS: string[] = deployment.oracleSigners ?? []
+export const ORACLE_THRESHOLD = deployment.threshold ?? ORACLE_SIGNERS.length
 export const EXPLORER = (hash: string) => `${deployment.explorer}/tx/${hash}`
 export const EXPLORER_ACCT = (a: string) => `${deployment.explorer}/address/${a}`
 
@@ -330,34 +354,161 @@ export async function latestTx(poolId: string | number): Promise<string | null> 
   return ev?.transactionHash ?? null
 }
 
+// ── M-of-N signature verification ──────────────────────────────────────────
+/** The EIP-712 payload the oracle keys sign — must match Kickpact.sol exactly. */
+const RESULT_TYPES = {
+  Result: [
+    { name: "fixtureId", type: "uint64" },
+    { name: "homeGoals", type: "uint8" },
+    { name: "awayGoals", type: "uint8" },
+    { name: "ts", type: "uint64" },
+  ],
+}
+const resultDomain = () => ({
+  name: "Kickpact",
+  version: "1",
+  chainId: CHAIN_ID,
+  verifyingContract: KICKPACT_ADDR,
+})
+
+/** The live oracle set, read on-chain; falls back to the deployment file. */
+export async function oracleSet(): Promise<{ signers: string[]; threshold: number }> {
+  try {
+    const k = kickpact(provider())
+    const [signers, threshold] = await Promise.all([k.oracleSigners(), k.threshold()])
+    const list = (signers as string[]).map((s) => ethers.getAddress(s))
+    if (list.length) return { signers: list, threshold: Number(threshold) }
+  } catch {}
+  return { signers: ORACLE_SIGNERS, threshold: ORACLE_THRESHOLD }
+}
+
+/** One signature pulled out of the settle calldata and re-recovered here. */
+export interface RecoveredSigner {
+  /** Address recovered from the signature (null if it was malformed). */
+  address: string | null
+  /** Is that address one of the contract's oracle keys? */
+  member: boolean
+}
+
+/**
+ * The settle transaction's calldata. Injective's RPC answers
+ * eth_getTransactionByHash with null behind its load balancer, so go via the
+ * block the log came from — that lookup replicates fine — and only fall back
+ * to the by-hash fetch.
+ */
+async function settleData(ev: ethers.EventLog): Promise<string | null> {
+  const p = provider()
+  const hex = (n: number) => "0x" + n.toString(16)
+  try {
+    const raw: { input?: string } | null = await p.send("eth_getTransactionByBlockNumberAndIndex", [
+      hex(ev.blockNumber),
+      hex(ev.transactionIndex),
+    ])
+    if (raw?.input) return raw.input
+  } catch {}
+  try {
+    const block = await p.getBlock(ev.blockNumber, true)
+    const tx = block?.prefetchedTransactions?.find(
+      (t) => t.hash.toLowerCase() === ev.transactionHash.toLowerCase(),
+    )
+    if (tx?.data) return tx.data
+  } catch {}
+  try {
+    const tx = await p.getTransaction(ev.transactionHash)
+    if (tx?.data) return tx.data
+  } catch {}
+  return null
+}
+
+/** Pull `settle`'s arguments back out of its calldata. */
+async function settleCall(ev: ethers.EventLog): Promise<{ ts: bigint; signatures: string[] } | null> {
+  const data = await settleData(ev)
+  if (!data) return null
+  const parsed = new ethers.Interface(KickpactAbi as ethers.InterfaceAbi).parseTransaction({ data })
+  if (parsed?.name !== "settle") return null
+  return { ts: BigInt(parsed.args.ts), signatures: [...(parsed.args.signatures as string[])] }
+}
+
 export interface Settlement {
   homeGoals: number
   awayGoals: number
   result: number // 1 home / 2 draw / 3 away, derived on-chain from the goals
-  oracleSigner: string
+  /** The attested full-time stamp (epoch ms) from the calldata, when readable. */
+  ts: number | null
+  /** Every signature in the settle calldata, re-recovered in the browser. */
+  recovered: RecoveredSigner[]
+  /** Distinct oracle keys that really signed these goals. */
+  verifiedCount: number
+  /** M and N — "verifiedCount of signerCount, threshold required". */
+  threshold: number
+  signerCount: number
+  oracleSigners: string[]
+  /** "signatures" = re-recovered here; "event" = the RPC wouldn't serve the
+   *  calldata, so we fall back to the PoolSettled event (the chain checked). */
+  source: "signatures" | "event"
   txHash: string | null
-  /** A PoolSettled event only emits after settle() verifies the oracle's
-   *  EIP-712 signature on-chain, so the event's existence is the proof. */
   verified: boolean
 }
 
 /**
- * Re-verify a settled pool in the browser. The contract emits PoolSettled only
- * after ECDSA.recover over the signed goals equals its configured oracleSigner,
- * so the event proves the oracle signed exactly this score and the contract
- * derived the outcome from it on-chain — "verify this receipt yourself".
+ * Re-verify a settled pool in the browser. Settlement is M-of-N, so this pulls
+ * the PoolSettled event, fetches the settle transaction it came from, and
+ * re-recovers EVERY signature in the calldata against the EIP-712 digest of the
+ * final goals — reporting which oracle keys signed and whether enough of them
+ * did. No single signer is trusted, and none of them picks the winner.
+ *
+ * If the RPC won't serve the calldata (its by-hash lookups are unreliable) we
+ * fall back to the event alone: it only emits after the contract itself checked
+ * `threshold` distinct signatures on-chain.
  */
 export async function settlement(poolId: string | number): Promise<Settlement | null> {
   if (!KICKPACT_ADDR) return null
   const ev = await findPoolSettled(poolId)
   if (!ev) return null
+
+  const fixtureId = BigInt(ev.args.fixtureId)
+  const homeGoals = Number(ev.args.homeGoals)
+  const awayGoals = Number(ev.args.awayGoals)
+
+  const { signers, threshold } = await oracleSet()
+  const set = new Set(signers.map((s) => s.toLowerCase()))
+
+  const recovered: RecoveredSigner[] = []
+  let ts: number | null = null
+  const call = ev.transactionHash ? await settleCall(ev).catch(() => null) : null
+  if (call) {
+    ts = Number(call.ts)
+    const value = { fixtureId, homeGoals, awayGoals, ts: call.ts }
+    for (const sig of call.signatures) {
+      try {
+        const address = ethers.verifyTypedData(resultDomain(), RESULT_TYPES, value, sig)
+        recovered.push({ address, member: set.has(address.toLowerCase()) })
+      } catch {
+        recovered.push({ address: null, member: false })
+      }
+    }
+  }
+
+  const distinct = new Set(
+    recovered.filter((r) => r.member && r.address).map((r) => r.address!.toLowerCase()),
+  )
+  const source: "signatures" | "event" = recovered.length ? "signatures" : "event"
+  // Event-only fallback: settle() already enforced the threshold on-chain.
+  const verifiedCount = source === "signatures" ? distinct.size : threshold
+
   return {
-    homeGoals: Number(ev.args.homeGoals),
-    awayGoals: Number(ev.args.awayGoals),
+    homeGoals,
+    awayGoals,
     result: Number(ev.args.result),
-    oracleSigner: ORACLE_SIGNER,
+    ts,
+    recovered,
+    verifiedCount,
+    threshold,
+    signerCount: signers.length,
+    oracleSigners: signers,
+    source,
     txHash: ev.transactionHash,
-    verified: true,
+    verified: verifiedCount >= threshold,
   }
 }
 

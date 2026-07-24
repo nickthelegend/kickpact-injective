@@ -2,9 +2,9 @@
  * Kickpact screens — Injective era. Same pixel cabinet, new engine:
  *   • API-Football real-time World Cup data (fixtures / live scores / odds)
  *   • kUSD prediction pools escrowed by the Kickpact contract on Injective EVM
- *   • settlement receipts backed by an oracle-signed final score — verifiable
- *     from the phone by recovering the EIP-712 signer against the contract's
- *     configured oracle
+ *   • settlement receipts backed by an M-of-N oracle-signed final score —
+ *     verifiable from the phone by re-recovering every EIP-712 signature in the
+ *     settle calldata against the contract's oracle key set
  */
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -24,7 +24,8 @@ import {
 import {
   EXPLORER, EXPLORER_ACCT, OUTCOMES, claim, createPool, faucet,
   joinPool, duelDeadlineMs, duelJoinable, getPool, latestPoolTx, allPools,
-  poolsForFixture, myPick, pickName, shortAddr, verifySettlement, KICKPACT_ADDR, ORACLE_SIGNER,
+  poolsForFixture, myPick, pickName, shortAddr, verifySettlement, KICKPACT_ADDR, ORACLE_SIGNERS,
+  ORACLE_THRESHOLD, KICKPACT_USDC_ADDR,
   type PoolOutcome, type PoolState, type Settlement,
 } from "./injective"
 import * as nearby from "./nearby"
@@ -637,7 +638,9 @@ export function ReceiptsScreen({ onOpen }: { onOpen: (p: PoolState) => void }) {
     <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 110 }}>
       <PixelText size={20}>Receipts</PixelText>
       <PixelText size={9} color={C.white45} style={{ marginTop: 4 }} upper={false}>
-        every settlement traces to an oracle-signed final score, verified on Injective
+        every settlement traces to a final score co-signed by
+        {ORACLE_SIGNERS.length ? ` a ${ORACLE_THRESHOLD}-of-${ORACLE_SIGNERS.length} oracle set` : " the oracle set"},
+        verified on Injective
       </PixelText>
       {loading ? (
         <ActivityIndicator color={C.eth} style={{ marginTop: 30 }} />
@@ -678,6 +681,7 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
   const [g, setG] = useState<Game | null>(null)
   const [settlement, setSettlement] = useState<Settlement | null>(null)
   const [txSig, setTxSig] = useState<string | null>(null)
+  const usdcEscrow = KICKPACT_USDC_ADDR // null when this deployment has no USDC escrow
 
   useEffect(() => {
     fetchGames().then((all) => setG(all.find((x) => x.fixtureId === Number(pool.fixtureId)) ?? null)).catch(() => {})
@@ -686,8 +690,8 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
 
   useEffect(() => {
     if (!pool.settled) return
-    // Re-verify the receipt from the phone: recover the EIP-712 signer over the
-    // final goals and confirm it is the contract's configured oracle.
+    // Re-verify the receipt from the phone: recover EVERY EIP-712 signature in
+    // the settle calldata and count how many of the oracle keys really signed.
     verifySettlement(connection, pool.id).then(setSettlement).catch(() => {})
   }, [connection, pool])
 
@@ -725,15 +729,43 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
         {pool.settled && settlement ? (
           <>
             <PixelText size={11} color={C.white60} style={{ marginTop: 8 }} upper={false}>
-              final score signed by the oracle: {settlement.homeGoals}–{settlement.awayGoals}
+              final score signed by the oracles: {settlement.homeGoals}–{settlement.awayGoals}
             </PixelText>
             <PixelText size={9} color={C.white45} style={{ marginTop: 6 }} upper={false}>
-              the contract derived {settlement.outcome?.toUpperCase()} from these goals on-chain — the oracle reports
+              the contract derived {settlement.outcome?.toUpperCase()} from these goals on-chain — the oracles report
               the score, the contract decides the outcome.
             </PixelText>
-            <PixelText size={9} color={C.white45} style={{ marginTop: 6 }} upper={false}>
-              oracle signer {shortAddr(settlement.oracleSigner)}
+            <PixelText size={9} color={C.white45} style={{ marginTop: 8 }} upper={false}>
+              {settlement.threshold} of {settlement.signerCount} keys must co-sign — no single signer can settle.
             </PixelText>
+
+            {settlement.recovered.length > 0 ? (
+              settlement.recovered.map((r, i) => (
+                <PixelText
+                  key={`${r.address ?? "bad"}-${i}`}
+                  size={9}
+                  color={r.member ? C.greenLight : "#a33b3b"}
+                  style={{ marginTop: 6 }}
+                  upper={false}
+                >
+                  {r.member ? "✓" : "✕"} {r.address ? shortAddr(r.address) : "unrecoverable signature"}
+                  {r.member ? " · oracle key" : " · not in the oracle set"}
+                </PixelText>
+              ))
+            ) : (
+              settlement.oracleSigners.map((s) => (
+                <PixelText key={s} size={9} color={C.white45} style={{ marginTop: 6 }} upper={false}>
+                  · {shortAddr(s)} · oracle key
+                </PixelText>
+              ))
+            )}
+
+            <PixelText size={8} color={C.white45} style={{ marginTop: 8 }} upper={false}>
+              {settlement.source === "signatures"
+                ? "recovered from the settle calldata on this phone"
+                : "calldata unavailable from the rpc — the contract verified the set on-chain"}
+            </PixelText>
+
             <Panel
               style={{
                 padding: 8,
@@ -743,13 +775,15 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
               }}
             >
               <PixelText size={10} color={settlement.verified ? C.green : "#a33b3b"}>
-                {settlement.verified ? "ORACLE SIGNATURE VERIFIED ON-CHAIN ✓" : "—"}
+                {settlement.verified
+                  ? `ORACLE SIGNATURES · ${settlement.verifiedCount} OF ${settlement.signerCount} VERIFIED ✓`
+                  : `ONLY ${settlement.verifiedCount} OF ${settlement.threshold} SIGNATURES VERIFIED`}
               </PixelText>
             </Panel>
           </>
         ) : (
           <PixelText size={9} color={C.white45} style={{ marginTop: 8 }} upper={false}>
-            {pool.settled ? "verifying the oracle signature…" : "no attestation until the pool settles"}
+            {pool.settled ? "verifying the oracle signatures…" : "no attestation until the pool settles"}
           </PixelText>
         )}
       </Panel>
@@ -758,14 +792,23 @@ export function ReceiptScreen({ pool, onBack }: { pool: PoolState; onBack: () =>
         <PixelText size={9} color={C.white45} tracking={2}>CONTRACTS</PixelText>
         <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(KICKPACT_ADDR))}>
           <PixelText size={9} color={C.ethLight} style={{ marginTop: 8 }} upper={false}>
-            ↗ kickpact {shortAddr(KICKPACT_ADDR)}
+            ↗ kickpact · kUSD {shortAddr(KICKPACT_ADDR)}
           </PixelText>
         </Pressable>
-        <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(ORACLE_SIGNER))}>
-          <PixelText size={9} color={C.ethLight} style={{ marginTop: 6 }} upper={false}>
-            ↗ oracle signer {shortAddr(ORACLE_SIGNER)}
-          </PixelText>
-        </Pressable>
+        {usdcEscrow && (
+          <Pressable onPress={() => Linking.openURL(EXPLORER_ACCT(usdcEscrow))}>
+            <PixelText size={9} color={C.ethLight} style={{ marginTop: 6 }} upper={false}>
+              ↗ kickpact · usdc {shortAddr(usdcEscrow)}
+            </PixelText>
+          </Pressable>
+        )}
+        {(settlement?.oracleSigners ?? ORACLE_SIGNERS).map((s, i) => (
+          <Pressable key={s} onPress={() => Linking.openURL(EXPLORER_ACCT(s))}>
+            <PixelText size={9} color={C.ethLight} style={{ marginTop: 6 }} upper={false}>
+              ↗ oracle key {i + 1} {shortAddr(s)}
+            </PixelText>
+          </Pressable>
+        ))}
       </Panel>
     </ScrollView>
   )

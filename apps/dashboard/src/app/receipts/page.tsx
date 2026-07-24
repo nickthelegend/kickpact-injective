@@ -2,15 +2,16 @@
 
 /**
  * Verifiable Resolution UI — every pool with its settlement state, the final
- * score the oracle attested, and a one-click re-verification that recovers the
- * oracle's EIP-712 signature over those goals in the browser. No trust
- * required: the page re-derives the signer and checks it against the contract's
- * configured oracle — the outcome itself was built on-chain from the goals.
+ * score the oracles attested, and a one-click re-verification that recovers
+ * EVERY EIP-712 signature from the settle calldata in the browser. No trust
+ * required: the page re-derives each signer, checks it against the contract's
+ * oracle key set, and reports "M of N verified" — the outcome itself was built
+ * on-chain from the goals, and no single key could have settled alone.
  */
 import { useEffect, useState } from "react"
 import {
   fixtures, latestTx, pools, settlement, flag, shortAddr,
-  EXPLORER, EXPLORER_ACCT, KICKPACT_ADDR, ORACLE_SIGNER,
+  EXPLORER, EXPLORER_ACCT, KICKPACT_ADDR, KICKPACT_USDC_ADDR, ORACLE_SIGNERS, ORACLE_THRESHOLD,
   type Fixture, type Pool, type Settlement,
 } from "../../lib/data"
 
@@ -37,10 +38,11 @@ export default function Receipts() {
     <main>
       <h1 style={{ fontSize: 20, letterSpacing: 2 }}>SETTLEMENT RECEIPTS</h1>
       <p className="dim" style={{ fontSize: 11, lineHeight: 1.7 }}>
-        Every Kickpact pool settles when the contract accepts the oracle&apos;s{" "}
-        <span className="mono">EIP-712</span> signature over the final goals and derives the outcome{" "}
-        <span className="mono">on-chain</span> — the signer reports the score, never who wins. Click a pool to
-        inspect and re-verify its settlement.
+        Every Kickpact pool settles when the contract accepts{" "}
+        <span className="gold">{ORACLE_THRESHOLD} of {ORACLE_SIGNERS.length || "N"}</span> oracle{" "}
+        <span className="mono">EIP-712</span> signatures over the final goals and derives the outcome{" "}
+        <span className="mono">on-chain</span> — the signers report the score, never who wins, and no single
+        key can settle alone. Click a pool to inspect and re-verify its settlement.
       </p>
       <div className="panel" style={{ padding: 0, overflow: "auto" }}>
         <table className="receipts">
@@ -66,9 +68,18 @@ export default function Receipts() {
         {!rows.length && <div className="dim small" style={{ padding: 14 }}>loading pools from Injective testnet…</div>}
       </div>
       <p className="small dim" style={{ marginTop: 14 }}>
-        contract: <a href={EXPLORER_ACCT(KICKPACT_ADDR)} target="_blank">kickpact</a> ·{" "}
-        oracle signer: <a href={EXPLORER_ACCT(ORACLE_SIGNER)} target="_blank">{shortAddr(ORACLE_SIGNER)}</a> ·{" "}
-        Injective testnet
+        escrow: <a href={EXPLORER_ACCT(KICKPACT_ADDR)} target="_blank">kUSD</a>
+        {KICKPACT_USDC_ADDR && (
+          <> · <a href={EXPLORER_ACCT(KICKPACT_USDC_ADDR)} target="_blank">USDC</a></>
+        )}
+        {" · "}oracle keys:{" "}
+        {ORACLE_SIGNERS.map((s, i) => (
+          <span key={s}>
+            {i > 0 && ", "}
+            <a href={EXPLORER_ACCT(s)} target="_blank">{shortAddr(s)}</a>
+          </span>
+        ))}
+        {" · "}Injective testnet
       </p>
     </main>
   )
@@ -88,8 +99,8 @@ function Receipt({ pool, name, onBack }: { pool: Pool; name: string; onBack: () 
     if (!pool.settled) return
     setVerify("running")
     try {
-      // Re-recover the signer from the settle tx and check it against the
-      // contract's oracle — the browser-side "verify this receipt yourself".
+      // Re-recover EVERY signer from the settle calldata and check each against
+      // the contract's oracle set — "verify this receipt yourself", in-browser.
       const r = await settlement(pool.id)
       setS(r)
       setVerify(r?.verified ? "true" : "false")
@@ -126,16 +137,46 @@ function Receipt({ pool, name, onBack }: { pool: Pool; name: string; onBack: () 
           <>
             <div className="mono" style={{ marginTop: 8, fontSize: 12 }}>
               fixture {pool.fixtureId} · oracle-signed final {s.homeGoals}–{s.awayGoals}
+              {s.ts != null && <> · attested {new Date(s.ts).toUTCString()}</>}
             </div>
             <div style={{ fontSize: 13, marginTop: 8 }}>
               outcome derived on-chain:{" "}
               <span className="pill" style={{ marginRight: 6 }}>home goals = {s.homeGoals}</span>
               <span className="pill">away goals = {s.awayGoals}</span>
             </div>
-            <div className="mono" style={{ marginTop: 8 }}>
-              oracle signer {shortAddr(s.oracleSigner)}
-              {s.verified && <span className="live"> · signature verified on-chain ✓</span>}
+
+            <div className="small dim" style={{ marginTop: 16 }}>
+              ORACLE SIGNATURES · {s.verifiedCount} OF {s.signerCount} VERIFIED{" "}
+              {s.verified ? "✓" : `· ${s.threshold} REQUIRED`}
             </div>
+            {s.recovered.length > 0 ? (
+              s.recovered.map((r, i) => (
+                <div className="mono" key={`${r.address ?? "bad"}-${i}`} style={{ marginTop: 6 }}>
+                  <span style={{ color: r.member ? "var(--green-light)" : "var(--red)" }}>
+                    {r.member ? "✓" : "✕"}
+                  </span>{" "}
+                  {r.address ? (
+                    <a href={EXPLORER_ACCT(r.address)} target="_blank">{r.address}</a>
+                  ) : (
+                    "unrecoverable signature"
+                  )}{" "}
+                  <span className="dim">{r.member ? "· oracle key" : "· not in the oracle set"}</span>
+                </div>
+              ))
+            ) : (
+              s.oracleSigners.map((a) => (
+                <div className="mono" key={a} style={{ marginTop: 6 }}>
+                  <a href={EXPLORER_ACCT(a)} target="_blank">{a}</a>{" "}
+                  <span className="dim">· oracle key</span>
+                </div>
+              ))
+            )}
+            <div className="small dim" style={{ marginTop: 8 }}>
+              {s.source === "signatures"
+                ? "recovered in your browser from the settle calldata"
+                : "calldata unavailable from the rpc — the contract verified the set on-chain"}
+            </div>
+
             {pool.settled && (
               <button
                 className={`btn ${verify === "true" ? "green" : verify === "false" ? "red" : ""}`}
@@ -143,10 +184,10 @@ function Receipt({ pool, name, onBack }: { pool: Pool; name: string; onBack: () 
                 onClick={doVerify}
               >
                 {verify === "running" ? "CHECKING ON-CHAIN…"
-                  : verify === "true" ? "ORACLE SIGNATURE VERIFIED ✓"
-                  : verify === "false" ? "NO SETTLEMENT EVENT FOUND"
+                  : verify === "true" ? `${s.verifiedCount} OF ${s.signerCount} SIGNERS VERIFIED ✓`
+                  : verify === "false" ? "THRESHOLD NOT MET"
                   : verify === "error" ? "RETRY VERIFICATION"
-                  : "VERIFY ON-CHAIN NOW"}
+                  : "VERIFY SIGNATURES NOW"}
               </button>
             )}
           </>
