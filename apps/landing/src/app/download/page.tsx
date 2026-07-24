@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 // fetch fails — a stale value here quietly hands people the wrong build. Android
 // and desktop sit on different tags: v2.1.0 re-cut the APK only, so the desktop
 // artefacts still live on v2.0.0 and pointing them at v2.1.0 404s.
-const REL_ANDROID = "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana"
+const REL_ANDROID = "https://github.com/nickthelegend/kickpact-injective/releases/download/v1.0.0-injective"
 const REL_DESKTOP = "https://github.com/nickthelegend/kickpact/releases/download/v2.0.0-solana"
 const REPO = "https://github.com/nickthelegend/kickpact-injective"
 const DASHBOARD = "https://kickpact-solana.vercel.app"
@@ -40,7 +40,7 @@ type Links = {
 }
 
 const FALLBACK: Links = {
-  apk: `${REL_ANDROID}/kickpact-android-arm64.apk`,
+  apk: `${REL_ANDROID}/kickpact-injective-android.apk`,
   mac: `${REL_DESKTOP}/Kickpact-2.0.0-mac-arm64.dmg`,
   win: `${REL_DESKTOP}/Kickpact-2.0.0-win-x64.exe`,
   linux: `${REL_DESKTOP}/Kickpact-2.0.0-linux-x86_64.AppImage`,

@@ -9,9 +9,11 @@
     "url": "https://kickpact-solana.vercel.app"
   },
   "android": {
-    "url": "https://github.com/nickthelegend/kickpact/releases/download/v2.1.0-solana/kickpact-android-arm64.apk",
+    "url": "https://github.com/nickthelegend/kickpact-injective/releases/download/v1.0.0-injective/kickpact-injective-android.apk",
     "size": "136 MB",
-    "sha_note": "universal APK \u00b7 io.kickpact.app \u00b7 Injective EVM testnet + API-Football feeds \u00b7 Bluetooth duels fixed"
+    "sha_note": "sha256 1ea1ebe894430ca1f5ec6ff978cc5c4b5d4e9a761dc9ac96ad27c2e1dd7a3be3",
+    "sha256": "1ea1ebe894430ca1f5ec6ff978cc5c4b5d4e9a761dc9ac96ad27c2e1dd7a3be3",
+    "version": "1.0.0-injective"
   },
   "desktop": {
     "mac": {
