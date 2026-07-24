@@ -77,6 +77,21 @@ Deployed addresses are written to [`apps/injective/deployments.json`](apps/injec
 3. **No winner? Everyone refunds.** And if no signature ever arrives, a 48-hour grace unlocks self-serve refunds. Funds are never stranded, never admin-controlled.
 4. **Receipts re-verify anywhere.** The app and dashboard pull the `PoolSettled` event and the `settle` calldata, then re-run `verifyTypedData` in the client — you watch the signature recover to the oracle live, on your own device.
 
+## Injective integration & the new Injective technologies
+
+**Is Injective integrated? Yes — it is the whole settlement layer.** Kickpact is not a chain-agnostic app with a chain bolted on: the escrow, the stake token, the settlement and every payout are Solidity contracts deployed and verified on **Injective EVM testnet (chainId 1439)**, and the app, keeper and dashboard all read and write through Injective's EVM JSON-RPC with `ethers` v6. The addresses are in the table at the top of this README, live on Blockscout.
+
+Here is an honest account of the four highlighted technologies — what we used, and what we did not:
+
+| Technology | Used? | Detail |
+| --- | --- | --- |
+| **Agent Skills** | ✅ **Yes** | The 20 Injective agent-skills are vendored in [`.claude/skills/`](.claude/skills) and pinned in [`skills-lock.json`](skills-lock.json) (restore with `npx skills experimental_install`). They were the working spec for this port: **`injective-evm-developer`** gave the Hardhat testnet config we ship — chainId `1439`, RPC `k8s.testnet.json-rpc.injective.network`, the Blockscout custom-chain verify block, and the `paris` EVM target that keeps bytecode free of `PUSH0` so it runs regardless of hardfork level. **`injective-faucet`** drove the deployer bootstrap; **`injective-frontend-wallet`** informed the EVM wallet path; **`injective-usdc-integration`** is the reference for the mainnet USDC swap described below. |
+| **MCP Server** | ❌ No | We built against the vendored skills and the EVM JSON-RPC directly, so the Injective MCP server was never connected. `injective-mcp-servers` is vendored for the skills that need it, but nothing in `apps/` calls it. |
+| **USDC (CCTP)** | ❌ No | Stakes use **`KUSD.sol`**, our own ERC-20 (6 dp, open faucet) so anyone can try the app on testnet without acquiring assets. The escrow is token-agnostic — it holds `IERC20` and pulls via `transferFrom` — so pointing it at **native USDC on Injective** (`0xa00C59fF5a080D2b954d0c75e46E22a0c371235a`, also 6 dp) is a constructor argument, not a rewrite. CCTP would then let a user fund a pool from another chain. Not implemented, not claimed. |
+| **x402** | ❌ No | There is no metered/paid API surface in Kickpact — settlement is permissionless and gasless to *request*, so there was nothing for x402 to price. The natural fit would be selling the oracle's signed attestations per-fixture; we did not build it. |
+
+**Why this matters for the trust model:** the one thing we genuinely need from a chain is a cheap, permissionless `settle()` that anyone can call — a keeper, a pool member, or a stranger. Injective's EVM gives us that with sub-cent gas, which is what makes "anyone can settle, and a 48-hour self-serve refund if nobody does" a real guarantee rather than a slogan.
+
 ## Run it
 
 ```bash
