@@ -13,6 +13,21 @@
 
 ---
 
+## Deployed on Injective EVM testnet
+
+Live and **verified on Blockscout** — click a contract to read its source on-chain. Network: **Injective EVM testnet** · chainId **1439** · RPC `https://k8s.testnet.json-rpc.injective.network/` · explorer [Blockscout](https://testnet.blockscout.injective.network).
+
+| What | Address | Explorer |
+| --- | --- | --- |
+| **Kickpact** — escrow + signed-score settlement | `0x528c3314FbE745e7111a797B6e104408C1d62DB5` | [verified code ↗](https://testnet.blockscout.injective.network/address/0x528c3314FbE745e7111a797B6e104408C1d62DB5?tab=contract) |
+| **KUSD** — kUSD ERC-20 (6 dp, open faucet) | `0x5761A411F5B07160328a71263F71c0EB3Ad17557` | [verified code ↗](https://testnet.blockscout.injective.network/address/0x5761A411F5B07160328a71263F71c0EB3Ad17557?tab=contract) |
+| **Oracle signer** — attests final scores (EIP-712) | `0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a` | [account ↗](https://testnet.blockscout.injective.network/address/0x02bA8DF40A30E25E72B1100244b38C21F74Afc9a) |
+| **Deployer** | `0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a` | [account ↗](https://testnet.blockscout.injective.network/address/0xFedb9938BDeFdD91Ae52a4a93746Fc32B77E690a) |
+
+Need testnet INJ for gas? [testnet.faucet.injective.network](https://testnet.faucet.injective.network/). All addresses are also machine-readable in [`apps/injective/deployments.json`](apps/injective/deployments.json).
+
+---
+
 ## Why this exists
 
 Betting with friends is either custodial (a bookie holds your money) or pure trust ("you never paid me"). And even trustless escrow has an oracle problem: *who says who won?*
